@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app import models, schemas
-from app.cloudinary_utils import upload_student_photo, MAX_PHOTO_SIZE_BYTES, ALLOWED_CONTENT_TYPES
+from app.cloudinary_utils import (
+    upload_student_photo,
+    delete_student_photo,
+    MAX_PHOTO_SIZE_BYTES,
+    ALLOWED_CONTENT_TYPES,
+)
 
 router = APIRouter(prefix="/api/v1/students", tags=["students"], dependencies=[Depends(get_current_user)])
 
@@ -102,3 +107,66 @@ async def upload_photo(student_id: str, file: UploadFile = File(...), db: Sessio
     db.commit()
     db.refresh(student)
     return student
+
+
+@router.delete("/{student_id}/photo", response_model=schemas.StudentOut)
+def remove_photo(student_id: str, db: Session = Depends(get_db)):
+    student = db.get(models.Student, student_id)
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    if student.photo_url:
+        delete_student_photo(student_id)
+        student.photo_url = None
+        db.commit()
+        db.refresh(student)
+    return student
+
+
+@router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
+def archive_student(student_id: str, db: Session = Depends(get_db)):
+    """Archives (deactivates) a student rather than hard-deleting — preserves
+    assessment history per BR, and keeps the student_id from being reused."""
+    student = db.get(models.Student, student_id)
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    student.active_status = False
+    db.commit()
+
+
+@router.post("/{student_id}/restore", response_model=schemas.StudentOut)
+def restore_student(student_id: str, db: Session = Depends(get_db)):
+    student = db.get(models.Student, student_id)
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    student.active_status = True
+    db.commit()
+    db.refresh(student)
+    return student
+
+
+@router.delete("/{student_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+def permanently_delete_student(student_id: str, db: Session = Depends(get_db)):
+    """Hard-deletes a student. Only allowed once archived, and only if they
+    have zero assessment history — otherwise archiving is the end state, by
+    design, so that assessment records are never silently lost."""
+    student = db.get(models.Student, student_id)
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    if student.active_status:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Archive this student before permanently deleting them.",
+        )
+    has_assessments = db.execute(
+        select(models.Assessment.id).where(models.Assessment.student_id == student_id).limit(1)
+    ).first()
+    if has_assessments:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This student has assessment history and cannot be permanently deleted.",
+        )
+    if student.photo_url:
+        delete_student_photo(student_id)
+    db.delete(student)
+    db.commit()

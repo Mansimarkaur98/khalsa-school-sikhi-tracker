@@ -5,10 +5,12 @@ from app.routers import auth, students, assessments, categories, grades
 
 app = FastAPI(title="Khalsa School Sikhi Progress Tracker API", version="1.0.0")
 
-# Vite's default dev server port — adjust/add your deployed frontend origin later
+# Vite falls back to 5174, 5175, etc. whenever its default port is taken, so match
+# any localhost dev port rather than hardcoding 5173 — add your deployed frontend
+# origin to allow_origins later for production.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -57,3 +57,44 @@ def create_assessment(student_id: str, payload: schemas.AssessmentCreate, db: Se
     db.commit()
     db.refresh(assessment)
     return assessment
+
+
+@router.put("/{assessment_id}", response_model=schemas.AssessmentOut)
+def update_assessment(
+    student_id: str, assessment_id: int, payload: schemas.AssessmentCreate, db: Session = Depends(get_db)
+):
+    assessment = db.get(models.Assessment, assessment_id)
+    if not assessment or assessment.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+
+    level = db.get(models.CategoryLevel, payload.level_id)
+    if not level or level.category_id != payload.category_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="level_id does not belong to the given category_id",
+        )
+
+    try:
+        term, academic_year = compute_term_and_year(payload.assessment_date)
+    except BlockedAssessmentDateError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    assessment.category_id = payload.category_id
+    assessment.level_id = payload.level_id
+    assessment.assessment_date = payload.assessment_date
+    assessment.academic_year = academic_year
+    assessment.assessment_term = term
+    assessment.assessed_by = payload.assessed_by
+    assessment.comments = payload.comments
+    db.commit()
+    db.refresh(assessment)
+    return assessment
+
+
+@router.delete("/{assessment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_assessment(student_id: str, assessment_id: int, db: Session = Depends(get_db)):
+    assessment = db.get(models.Assessment, assessment_id)
+    if not assessment or assessment.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+    db.delete(assessment)
+    db.commit()

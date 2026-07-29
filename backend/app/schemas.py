@@ -63,6 +63,7 @@ class StudentListItem(BaseModel):
     last_name: str
     grade: str
     photo_url: Optional[str] = None
+    active_status: bool
 
 
 # ---------- Categories & Levels ----------
