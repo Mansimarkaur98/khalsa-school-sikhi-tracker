@@ -1,7 +1,10 @@
 import { apiClient } from './client'
 import type {
+  ForgotPasswordRequest,
   LoginRequest,
+  MessageResponse,
   ResendVerificationRequest,
+  ResetPasswordRequest,
   SignupRequest,
   SignupResponse,
   TokenResponse,
@@ -24,5 +27,15 @@ export async function verifyEmail(token: string): Promise<TokenResponse> {
 
 export async function resendVerification(payload: ResendVerificationRequest): Promise<SignupResponse> {
   const { data } = await apiClient.post<SignupResponse>('/api/v1/auth/resend-verification', payload)
+  return data
+}
+
+export async function forgotPassword(payload: ForgotPasswordRequest): Promise<MessageResponse> {
+  const { data } = await apiClient.post<MessageResponse>('/api/v1/auth/forgot-password', payload)
+  return data
+}
+
+export async function resetPassword(payload: ResetPasswordRequest): Promise<TokenResponse> {
+  const { data } = await apiClient.post<TokenResponse>('/api/v1/auth/reset-password', payload)
   return data
 }

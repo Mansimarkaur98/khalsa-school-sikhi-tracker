@@ -30,3 +30,29 @@ Click the link below to activate your account:</p>
         server.starttls()
         server.login(settings.smtp_username, settings.smtp_password)
         server.sendmail(settings.smtp_username, [to_email], msg.as_string())
+
+
+def send_password_reset_email(to_email: str, first_name: str, token: str) -> None:
+    link = f"{settings.frontend_url}/reset-password?token={token}"
+
+    if not settings.smtp_username or not settings.smtp_password:
+        logger.warning("SMTP not configured — password reset link for %s: %s", to_email, link)
+        return
+
+    body = f"""\
+<p>Hi {first_name},</p>
+<p>We received a request to reset your Khalsa School Sikhi Progress Tracker password.
+Click the link below to choose a new one:</p>
+<p><a href="{link}">{link}</a></p>
+<p>This link expires in 1 hour. If you didn't request this, you can ignore this email —
+your password will stay the same.</p>
+"""
+    msg = MIMEText(body, "html")
+    msg["Subject"] = "Reset your Khalsa Sikhi Tracker password"
+    msg["From"] = settings.smtp_username
+    msg["To"] = to_email
+
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+        server.starttls()
+        server.login(settings.smtp_username, settings.smtp_password)
+        server.sendmail(settings.smtp_username, [to_email], msg.as_string())

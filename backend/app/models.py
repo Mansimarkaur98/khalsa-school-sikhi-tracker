@@ -19,7 +19,9 @@ class User(Base):
     email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     email_verify_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
-    email_verify_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    email_verify_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    password_reset_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
+    password_reset_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Student(Base):

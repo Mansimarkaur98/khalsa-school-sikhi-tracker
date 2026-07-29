@@ -9,10 +9,13 @@ from app import models
 from app.auth import create_access_token, hash_password, verify_password
 from app.config import settings
 from app.database import get_db
-from app.email_utils import send_activation_email
+from app.email_utils import send_activation_email, send_password_reset_email
 from app.schemas import (
+    ForgotPasswordRequest,
     LoginRequest,
+    MessageResponse,
     ResendVerificationRequest,
+    ResetPasswordRequest,
     SignupRequest,
     SignupResponse,
     TokenResponse,
@@ -21,6 +24,7 @@ from app.schemas import (
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 VERIFY_TOKEN_TTL_HOURS = 24
+RESET_TOKEN_TTL_HOURS = 1
 
 
 def _issue_verify_token(user: models.User) -> str:
@@ -28,6 +32,14 @@ def _issue_verify_token(user: models.User) -> str:
     user.email_verify_token = token
     user.email_verify_token_expires = datetime.now(timezone.utc) + timedelta(hours=VERIFY_TOKEN_TTL_HOURS)
     return token
+
+
+def _is_expired(expires_at) -> bool:
+    if expires_at is None:
+        return True
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at < datetime.now(timezone.utc)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -95,10 +107,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or already-used activation link")
 
-    expires_at = user.email_verify_token_expires
-    if expires_at is not None and expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if expires_at is None or expires_at < datetime.now(timezone.utc):
+    if _is_expired(user.email_verify_token_expires):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This activation link has expired")
 
     user.email_verified = True
@@ -124,3 +133,40 @@ def resend_verification(payload: ResendVerificationRequest, db: Session = Depend
     send_activation_email(user.email, user.first_name, token)
 
     return SignupResponse(message="A new activation link has been sent.", email=user.email)
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.execute(
+        select(models.User).where(models.User.email == payload.email)
+    ).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No account found for that email")
+
+    token = secrets.token_urlsafe(32)
+    user.password_reset_token = token
+    user.password_reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=RESET_TOKEN_TTL_HOURS)
+    db.commit()
+
+    send_password_reset_email(user.email, user.first_name, token)
+
+    return MessageResponse(message="A password reset link has been sent to your email.")
+
+
+@router.post("/reset-password", response_model=TokenResponse)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.execute(
+        select(models.User).where(models.User.password_reset_token == payload.token)
+    ).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or already-used reset link")
+
+    if _is_expired(user.password_reset_token_expires):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This reset link has expired")
+
+    user.password_hash = hash_password(payload.new_password)
+    user.password_reset_token = None
+    user.password_reset_token_expires = None
+    db.commit()
+
+    return TokenResponse(access_token=create_access_token(user.email))

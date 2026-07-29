@@ -1,6 +1,18 @@
 import { useState, type FormEvent } from 'react'
-import { Alert, Box, Button, Link as MuiLink, Stack, TextField, Typography } from '@mui/material'
-import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import {
+  Alert,
+  Box,
+  Button,
+  InputAdornment,
+  Link as MuiLink,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { isAxiosError } from 'axios'
 import khalsaLogo from '../assets/khalsa-logo.jpeg'
@@ -9,6 +21,8 @@ import gurdwaraHall from '../assets/gurdwara-hall.jpg'
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const loggedOutIdle = (location.state as { reason?: string } | null)?.reason === 'idle'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -102,11 +116,33 @@ export function LoginPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
           bgcolor: 'background.default',
           p: 2,
         }}
       >
-        <Box sx={{ width: '100%', maxWidth: 380 }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.6,
+            backgroundImage:
+              'radial-gradient(circle at 88% 8%, rgba(11,61,145,0.10) 0, transparent 38%), radial-gradient(circle at 8% 92%, rgba(201,162,39,0.14) 0, transparent 42%)',
+          }}
+        />
+
+        <Paper
+          sx={{
+            width: '100%',
+            maxWidth: 400,
+            p: { xs: 3, sm: 5 },
+            borderRadius: 4,
+            position: 'relative',
+            zIndex: 1,
+            boxShadow: '0 12px 40px rgba(11,61,145,0.10), 0 2px 8px rgba(20,20,20,0.05)',
+          }}
+        >
           <Stack spacing={3} component="form" onSubmit={handleSubmit}>
             <Box sx={{ display: { xs: 'flex', md: 'none' }, justifyContent: 'center', mb: 1 }}>
               <Box
@@ -120,11 +156,24 @@ export function LoginPage() {
               <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: 1.5 }}>
                 Khalsa School
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 Staff Login
               </Typography>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 3,
+                  borderRadius: 999,
+                  mx: 'auto',
+                  mt: 1.5,
+                  backgroundImage: 'linear-gradient(90deg, #0B3D91 0%, #C9A227 100%)',
+                }}
+              />
             </Box>
 
+            {loggedOutIdle && !error && (
+              <Alert severity="info">You were logged out due to inactivity.</Alert>
+            )}
             {error && <Alert severity="error">{error}</Alert>}
 
             <TextField
@@ -135,15 +184,40 @@ export function LoginPage() {
               autoFocus
               required
               fullWidth
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              fullWidth
-            />
+            <Stack spacing={1}>
+              <TextField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                fullWidth
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <Box sx={{ textAlign: 'center' }}>
+                <MuiLink component={RouterLink} to="/forgot-password" variant="body2">
+                  Forgot password?
+                </MuiLink>
+              </Box>
+            </Stack>
             <Button type="submit" variant="contained" size="large" disabled={submitting} fullWidth>
               {submitting ? 'Logging in…' : 'Log in'}
             </Button>
@@ -151,7 +225,7 @@ export function LoginPage() {
               New here? <MuiLink component={RouterLink} to="/signup">Create an account</MuiLink>
             </Typography>
           </Stack>
-        </Box>
+        </Paper>
       </Box>
     </Box>
   )

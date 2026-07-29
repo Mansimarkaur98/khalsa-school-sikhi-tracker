@@ -1,13 +1,31 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PeopleIcon from '@mui/icons-material/People'
 import InsightsIcon from '@mui/icons-material/Insights'
-import { AppBar, Box, Button, Container, Menu, MenuItem, Toolbar, Typography } from '@mui/material'
+import {
+  AppBar,
+  Box,
+  Button,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Menu,
+  MenuItem,
+  Toolbar,
+  Typography,
+} from '@mui/material'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useIdleTimeout } from '../hooks/useIdleTimeout'
 import khalsaLogo from '../assets/khalsa-logo.jpeg'
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000
+const IDLE_WARNING_MS = 60 * 1000
 
 export function Layout() {
   const { logout } = useAuth()
@@ -20,6 +38,18 @@ export function Layout() {
     logout()
     navigate('/login', { replace: true })
   }
+
+  const handleIdleTimeout = useCallback(() => {
+    logout()
+    navigate('/login', { replace: true, state: { reason: 'idle' } })
+  }, [logout, navigate])
+
+  const { warningOpen, secondsLeft, stayLoggedIn } = useIdleTimeout({
+    idleMs: IDLE_TIMEOUT_MS,
+    warningMs: IDLE_WARNING_MS,
+    onTimeout: handleIdleTimeout,
+    enabled: true,
+  })
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -108,6 +138,22 @@ export function Layout() {
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Outlet />
       </Container>
+
+      <Dialog open={warningOpen} onClose={stayLoggedIn} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>Still there?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You've been inactive for a while. For your security, you'll be logged out in{' '}
+            <strong>{secondsLeft}s</strong> unless you stay logged in.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={handleLogout}>Log out now</Button>
+          <Button onClick={stayLoggedIn} variant="contained">
+            Stay logged in
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
