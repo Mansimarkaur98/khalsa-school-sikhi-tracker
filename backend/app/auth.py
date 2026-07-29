@@ -15,9 +15,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token() -> str:
+def hash_password(plain_password: str) -> str:
+    return pwd_context.hash(plain_password)
+
+
+def create_access_token(sub: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expiry_hours)
-    payload = {"sub": settings.app_username, "exp": expire}
+    payload = {"sub": sub, "exp": expire}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 

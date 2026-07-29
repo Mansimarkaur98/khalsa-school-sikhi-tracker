@@ -29,13 +29,11 @@ import {
   TableHead,
   TableRow,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material'
 import { isAxiosError } from 'axios'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   archiveStudent,
   getStudent,
@@ -52,7 +50,8 @@ const pillFieldSx = {
 
 export function StudentListPage() {
   const navigate = useNavigate()
-  const [view, setView] = useState<'active' | 'archived'>('active')
+  const [searchParams] = useSearchParams()
+  const view: 'active' | 'archived' = searchParams.get('view') === 'archived' ? 'archived' : 'active'
   const [studentId, setStudentId] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -170,19 +169,10 @@ export function StudentListPage() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Students
+          {view === 'archived' ? 'Archived Students' : 'Active Students'}
         </Typography>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={view}
-          onChange={(_e, val) => val && setView(val)}
-        >
-          <ToggleButton value="active">Active</ToggleButton>
-          <ToggleButton value="archived">Archived</ToggleButton>
-        </ToggleButtonGroup>
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

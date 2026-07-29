@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +11,14 @@ class Settings(BaseSettings):
     app_username: str
     app_password_hash: str
     cloudinary_url: str
+
+    # Signup account-activation email. Left unset in dev — send_activation_email()
+    # falls back to logging the link to the console when these aren't configured.
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    frontend_url: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

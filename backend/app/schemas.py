@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 # ---------- Auth ----------
@@ -10,9 +10,33 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SignupRequest(BaseModel):
+    first_name: str
+    last_name: str
+    school: str
+    email: EmailStr
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("password must be at least 8 characters")
+        return v
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class SignupResponse(BaseModel):
+    message: str
+    email: EmailStr
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
 
 
 # ---------- Students ----------
@@ -42,7 +66,14 @@ class StudentCreate(StudentBase):
 
 
 class StudentUpdate(StudentBase):
-    pass  # student_id is deliberately excluded — immutable per FR-2
+    student_id: Optional[str] = None  # editable only while the student has no assessment history
+
+    @field_validator("student_id")
+    @classmethod
+    def student_id_must_be_9_digits(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not (v.isdigit() and len(v) == 9):
+            raise ValueError("student_id must be exactly 9 digits")
+        return v
 
 
 class StudentOut(StudentBase):
@@ -53,6 +84,7 @@ class StudentOut(StudentBase):
     active_status: bool
     created_at: datetime
     updated_at: datetime
+    has_assessments: bool = False
 
 
 class StudentListItem(BaseModel):

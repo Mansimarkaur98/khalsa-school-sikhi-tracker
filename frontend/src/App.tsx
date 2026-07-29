@@ -3,6 +3,8 @@ import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
+import { SignupPage } from './pages/SignupPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { StudentListPage } from './pages/StudentListPage'
 import { StudentProfilePage } from './pages/StudentProfilePage'
 import { GradeProgressPage } from './pages/GradeProgressPage'
@@ -13,6 +15,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route
             element={
               <ProtectedRoute>

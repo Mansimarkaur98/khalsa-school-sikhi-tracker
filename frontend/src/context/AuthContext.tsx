@@ -5,6 +5,7 @@ import { clearToken, getToken, setToken } from '../api/client'
 interface AuthContextValue {
   isAuthenticated: boolean
   login: (username: string, password: string) => Promise<void>
+  loginWithToken: (accessToken: string) => void
   logout: () => void
 }
 
@@ -19,12 +20,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true)
   }, [])
 
+  const loginWithToken = useCallback((accessToken: string) => {
+    setToken(accessToken)
+    setIsAuthenticated(true)
+  }, [])
+
   const logout = useCallback(() => {
     clearToken()
     setIsAuthenticated(false)
   }, [])
 
-  return <AuthContext.Provider value={{ isAuthenticated, login, logout }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, login, loginWithToken, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth(): AuthContextValue {

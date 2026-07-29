@@ -15,6 +15,23 @@ export interface TokenResponse {
   token_type: string
 }
 
+export interface SignupRequest {
+  first_name: string
+  last_name: string
+  school: string
+  email: string
+  password: string
+}
+
+export interface SignupResponse {
+  message: string
+  email: string
+}
+
+export interface ResendVerificationRequest {
+  email: string
+}
+
 // ---------- Students ----------
 export interface StudentListItem {
   student_id: string
@@ -34,6 +51,7 @@ export interface StudentOut {
   active_status: boolean
   created_at: string
   updated_at: string
+  has_assessments: boolean
 }
 
 export interface StudentCreate {
@@ -47,6 +65,7 @@ export interface StudentUpdate {
   first_name: string
   last_name: string
   grade: string
+  student_id?: string
 }
 
 export interface ConflictingStudent {

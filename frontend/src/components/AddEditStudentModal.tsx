@@ -30,6 +30,7 @@ interface AddEditStudentModalProps {
 
 export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEditStudentModalProps) {
   const isEdit = Boolean(student)
+  const idLocked = isEdit && Boolean(student?.has_assessments)
 
   const [studentId, setStudentId] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -62,7 +63,12 @@ export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEdit
     try {
       let saved: StudentOut
       if (isEdit && student) {
-        saved = await updateStudent(student.student_id, { first_name: firstName, last_name: lastName, grade })
+        saved = await updateStudent(student.student_id, {
+          student_id: studentId,
+          first_name: firstName,
+          last_name: lastName,
+          grade,
+        })
       } else {
         saved = await createStudent({ student_id: studentId, first_name: firstName, last_name: lastName, grade })
       }
@@ -169,8 +175,10 @@ export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEdit
               onChange={(e) => setStudentId(e.target.value)}
               required
               fullWidth
-              disabled={isEdit}
-              helperText={isEdit ? 'Student ID cannot be changed once created.' : undefined}
+              disabled={idLocked}
+              helperText={
+                idLocked ? 'This student has assessment history, so their Student ID cannot be changed.' : undefined
+              }
               slotProps={{ htmlInput: { maxLength: 9, inputMode: 'numeric' } }}
             />
             <Stack direction="row" spacing={2}>

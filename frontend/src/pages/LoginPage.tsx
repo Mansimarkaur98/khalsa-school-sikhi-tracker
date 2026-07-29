@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { Alert, Box, Button, Link as MuiLink, Stack, TextField, Typography } from '@mui/material'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { isAxiosError } from 'axios'
 import khalsaLogo from '../assets/khalsa-logo.jpeg'
@@ -24,6 +24,8 @@ export function LoginPage() {
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 401) {
         setError('Incorrect username or password.')
+      } else if (isAxiosError(err) && err.response?.status === 403) {
+        setError(String(err.response.data?.detail ?? 'Please verify your email before logging in.'))
       } else {
         setError('Unable to log in. Please try again.')
       }
@@ -119,15 +121,15 @@ export function LoginPage() {
                 Khalsa School
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                Teacher Login
+                Staff Login
               </Typography>
             </Box>
 
             {error && <Alert severity="error">{error}</Alert>}
 
             <TextField
-              label="Username"
-              placeholder="staff username"
+              label="Email Address"
+              placeholder="Email Address"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoFocus
@@ -146,7 +148,7 @@ export function LoginPage() {
               {submitting ? 'Logging in…' : 'Log in'}
             </Button>
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-              Shared staff login. Contact admin for credentials.
+              New here? <MuiLink component={RouterLink} to="/signup">Create an account</MuiLink>
             </Typography>
           </Stack>
         </Box>
