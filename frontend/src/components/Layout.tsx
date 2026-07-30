@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PeopleIcon from '@mui/icons-material/People'
@@ -140,6 +141,17 @@ export function Layout() {
               sx={{ '&.active': { fontWeight: 700, textDecoration: 'underline', textDecorationColor: 'secondary.main', textUnderlineOffset: '6px' } }}
             >
               Manage Users
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              component={NavLink}
+              to="/admin/categories"
+              color="inherit"
+              startIcon={<CategoryOutlinedIcon />}
+              sx={{ '&.active': { fontWeight: 700, textDecoration: 'underline', textDecorationColor: 'secondary.main', textUnderlineOffset: '6px' } }}
+            >
+              Manage Categories
             </Button>
           )}
           <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>

@@ -151,6 +151,8 @@ class StudentOut(StudentBase):
     has_assessments: bool = False
     school_id: int
     school_name: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 class StudentListItem(BaseModel):
@@ -171,12 +173,32 @@ class CategoryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     category_name: str
+    active: bool
+
+
+class CategoryCreate(BaseModel):
+    category_name: str
+
+
+class CategoryUpdate(BaseModel):
+    category_name: str
 
 
 class LevelOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     category_id: int
+    level_number: int
+    description: str
+    active: bool
+
+
+class CategoryLevelCreate(BaseModel):
+    level_number: int
+    description: str
+
+
+class CategoryLevelUpdate(BaseModel):
     level_number: int
     description: str
 

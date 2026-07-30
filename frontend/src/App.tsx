@@ -12,6 +12,7 @@ import { StudentListPage } from './pages/StudentListPage'
 import { StudentProfilePage } from './pages/StudentProfilePage'
 import { GradeProgressPage } from './pages/GradeProgressPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
+import { AdminCategoriesPage } from './pages/AdminCategoriesPage'
 
 function App() {
   return (
@@ -38,6 +39,14 @@ function App() {
               element={
                 <AdminRoute>
                   <AdminUsersPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/categories"
+              element={
+                <AdminRoute>
+                  <AdminCategoriesPage />
                 </AdminRoute>
               }
             />

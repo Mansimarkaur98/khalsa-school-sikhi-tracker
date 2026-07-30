@@ -137,11 +137,31 @@ export interface StudentConflictDetail {
 export interface CategoryOut {
   id: number
   category_name: string
+  active: boolean
+}
+
+export interface CategoryCreate {
+  category_name: string
+}
+
+export interface CategoryUpdate {
+  category_name: string
 }
 
 export interface LevelOut {
   id: number
   category_id: number
+  level_number: number
+  description: string
+  active: boolean
+}
+
+export interface CategoryLevelCreate {
+  level_number: number
+  description: string
+}
+
+export interface CategoryLevelUpdate {
   level_number: number
   description: string
 }

@@ -20,18 +20,17 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     last_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="teacher")
     school_id: Mapped[Optional[int]] = mapped_column(ForeignKey("sikhi_tracker.schools.id"), nullable=True)
-    email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     email_verify_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
     email_verify_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     password_reset_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
     password_reset_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="teacher")
 
     school: Mapped[Optional["School"]] = relationship()
 
@@ -46,12 +45,14 @@ class Student(Base):
     student_id: Mapped[str] = mapped_column(String(10), primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    grade: Mapped[str] = mapped_column(String(5), nullable=False)
     school_id: Mapped[int] = mapped_column(ForeignKey("sikhi_tracker.schools.id"), nullable=False)
+    grade: Mapped[str] = mapped_column(String(5), nullable=False)
     photo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     active_status: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    updated_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     assessments: Mapped[list["Assessment"]] = relationship(back_populates="student")
     school: Mapped["School"] = relationship()
