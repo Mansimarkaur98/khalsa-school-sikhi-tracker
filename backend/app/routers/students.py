@@ -45,7 +45,7 @@ def list_students(
     if grade:
         query = query.where(models.Student.grade == grade)
 
-    return db.execute(query.order_by(models.Student.last_name)).scalars().all()
+    return db.execute(query.order_by(models.Student.first_name, models.Student.last_name)).scalars().all()
 
 
 @router.post("", response_model=schemas.StudentOut, status_code=status.HTTP_201_CREATED)
