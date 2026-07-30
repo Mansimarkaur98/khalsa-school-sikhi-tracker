@@ -1,10 +1,19 @@
 import { useState, type FormEvent } from 'react'
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined'
+import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import {
   Alert,
   Box,
   Button,
+  IconButton,
+  InputAdornment,
   Link as MuiLink,
   MenuItem,
+  Paper,
   Stack,
   TextField,
   Typography,
@@ -23,6 +32,7 @@ export function SignupPage() {
   const [school, setSchool] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
@@ -122,11 +132,33 @@ export function SignupPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
           bgcolor: 'background.default',
           p: 2,
         }}
       >
-        <Box sx={{ width: '100%', maxWidth: 420 }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.6,
+            backgroundImage:
+              'radial-gradient(circle at 88% 8%, rgba(11,61,145,0.10) 0, transparent 38%), radial-gradient(circle at 8% 92%, rgba(201,162,39,0.14) 0, transparent 42%)',
+          }}
+        />
+
+        <Paper
+          sx={{
+            width: '100%',
+            maxWidth: 520,
+            p: { xs: 3, sm: 5 },
+            borderRadius: 4,
+            position: 'relative',
+            zIndex: 1,
+            boxShadow: '0 12px 40px rgba(11,61,145,0.10), 0 2px 8px rgba(20,20,20,0.05)',
+          }}
+        >
           {submittedEmail ? (
             <Stack spacing={2} sx={{ textAlign: 'center' }}>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -154,9 +186,19 @@ export function SignupPage() {
                 <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: 1.5 }}>
                   Khalsa School
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   Create an account
                 </Typography>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 3,
+                    borderRadius: 999,
+                    mx: 'auto',
+                    mt: 1.5,
+                    backgroundImage: 'linear-gradient(90deg, #0B3D91 0%, #C9A227 100%)',
+                  }}
+                />
               </Box>
 
               {error && <Alert severity="error">{error}</Alert>}
@@ -169,6 +211,15 @@ export function SignupPage() {
                   autoFocus
                   required
                   fullWidth
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonOutlineIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
                 />
                 <TextField
                   label="Last name"
@@ -185,6 +236,15 @@ export function SignupPage() {
                 onChange={(e) => setSchool(e.target.value)}
                 required
                 fullWidth
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SchoolOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               >
                 {SCHOOL_OPTIONS.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -197,18 +257,57 @@ export function SignupPage() {
                 type="email"
                 helperText="Enter your khalsa school email address"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  e.target.setCustomValidity('')
+                  setEmail(e.target.value)
+                }}
+                onInvalid={(e) => {
+                  const target = e.target as HTMLInputElement
+                  if (target.validity.typeMismatch) {
+                    target.setCustomValidity('Invalid email address')
+                  }
+                }}
                 required
                 fullWidth
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EmailOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
               <TextField
                 label="Password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 helperText="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 fullWidth
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword((v) => !v)}
+                          edge="end"
+                          size="small"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
               <Button type="submit" variant="contained" size="large" disabled={submitting} fullWidth>
                 {submitting ? 'Creating account…' : 'Create account'}
@@ -218,7 +317,7 @@ export function SignupPage() {
               </Typography>
             </Stack>
           )}
-        </Box>
+        </Paper>
       </Box>
     </Box>
   )

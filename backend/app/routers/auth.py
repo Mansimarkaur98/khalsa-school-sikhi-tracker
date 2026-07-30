@@ -6,11 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import models
-from app.auth import create_access_token, hash_password, verify_password
+from app.auth import create_access_token, get_current_user, hash_password, verify_password
 from app.config import settings
 from app.database import get_db
 from app.email_utils import send_activation_email, send_password_reset_email
 from app.schemas import (
+    CurrentUserResponse,
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
@@ -170,3 +171,20 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     db.commit()
 
     return TokenResponse(access_token=create_access_token(user.email))
+
+
+@router.get("/me", response_model=CurrentUserResponse)
+def get_me(current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = db.execute(
+        select(models.User).where(models.User.email == current_user)
+    ).scalar_one_or_none()
+
+    if user and user.first_name and user.last_name:
+        return CurrentUserResponse(
+            first_name=user.first_name,
+            last_name=user.last_name,
+            display_name=f"{user.first_name} {user.last_name}",
+        )
+
+    # Shared staff login (or a legacy account with no name on file) — fall back to the username.
+    return CurrentUserResponse(display_name=current_user)

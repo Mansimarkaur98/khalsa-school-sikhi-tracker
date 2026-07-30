@@ -20,7 +20,7 @@ def list_assessments(student_id: str, db: Session = Depends(get_db)):
     query = (
         select(models.Assessment)
         .where(models.Assessment.student_id == student_id)
-        .order_by(models.Assessment.assessment_date.desc())
+        .order_by(models.Assessment.assessment_date.desc(), models.Assessment.category_id)
     )
     return db.execute(query).scalars().all()
 

@@ -99,7 +99,10 @@ export function StudentListPage() {
   }
 
   function handleStudentEdited(student: StudentOut) {
-    setAllResults((prev) => prev.map((s) => (s.student_id === student.student_id ? { ...s, ...student } : s)))
+    // Match on the pre-edit ID, not the (possibly just-changed) new one, otherwise
+    // renaming a student's ID leaves the old row in the list untouched.
+    const originalId = editingStudent?.student_id
+    setAllResults((prev) => prev.map((s) => (s.student_id === originalId ? { ...s, ...student } : s)))
   }
 
   async function handleEditClick(studentId: string) {

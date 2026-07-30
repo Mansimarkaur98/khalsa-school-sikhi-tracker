@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import {
   Alert,
   Box,
   Button,
+  IconButton,
   InputAdornment,
   Link as MuiLink,
   Paper,
@@ -25,6 +28,7 @@ export function LoginPage() {
   const loggedOutIdle = (location.state as { reason?: string } | null)?.reason === 'idle'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -197,7 +201,7 @@ export function LoginPage() {
             <Stack spacing={1}>
               <TextField
                 label="Password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -207,6 +211,18 @@ export function LoginPage() {
                     startAdornment: (
                       <InputAdornment position="start">
                         <LockOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword((v) => !v)}
+                          edge="end"
+                          size="small"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                        </IconButton>
                       </InputAdornment>
                     ),
                   },

@@ -99,8 +99,8 @@ export function Layout() {
             anchorEl={studentsMenuAnchor}
             open={Boolean(studentsMenuAnchor)}
             onClose={() => setStudentsMenuAnchor(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'center' }}
           >
             <MenuItem
               component={Link}

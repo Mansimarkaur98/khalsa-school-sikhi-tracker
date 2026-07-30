@@ -41,6 +41,9 @@ export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEdit
   const [error, setError] = useState<string | null>(null)
   const [conflict, setConflict] = useState<StudentConflictDetail['conflicting_student'] | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [studentIdTouched, setStudentIdTouched] = useState(false)
+
+  const studentIdInvalid = studentId.length > 0 && !/^\d{9}$/.test(studentId)
 
   useEffect(() => {
     if (open) {
@@ -52,6 +55,7 @@ export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEdit
       setRemovePhoto(false)
       setError(null)
       setConflict(null)
+      setStudentIdTouched(false)
     }
   }, [open, student])
 
@@ -59,6 +63,11 @@ export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEdit
     e.preventDefault()
     setError(null)
     setConflict(null)
+    if (studentIdInvalid) {
+      setStudentIdTouched(true)
+      setError('Invalid student ID - enter a 9 digit ID.')
+      return
+    }
     setSubmitting(true)
     try {
       let saved: StudentOut
@@ -86,6 +95,8 @@ export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEdit
         setConflict(detail.conflicting_student)
       } else if (isAxiosError(err) && err.response?.status === 400) {
         setError(typeof err.response.data.detail === 'string' ? err.response.data.detail : 'Photo upload failed.')
+      } else if (isAxiosError(err) && err.response?.status === 422) {
+        setError('Invalid student ID - enter a 9 digit ID.')
       } else {
         setError('Unable to save student. Please try again.')
       }
@@ -173,11 +184,17 @@ export function AddEditStudentModal({ open, onClose, onSaved, student }: AddEdit
               label="Student ID"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
+              onBlur={() => setStudentIdTouched(true)}
               required
               fullWidth
               disabled={idLocked}
+              error={!idLocked && studentIdTouched && studentIdInvalid}
               helperText={
-                idLocked ? 'This student has assessment history, so their Student ID cannot be changed.' : undefined
+                idLocked
+                  ? 'This student has assessment history, so their Student ID cannot be changed.'
+                  : studentIdTouched && studentIdInvalid
+                    ? 'Invalid student ID - enter a 9 digit ID.'
+                    : undefined
               }
               slotProps={{ htmlInput: { maxLength: 9, inputMode: 'numeric' } }}
             />

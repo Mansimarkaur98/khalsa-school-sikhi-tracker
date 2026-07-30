@@ -19,12 +19,14 @@ import {
   LinearProgress,
   Paper,
   Stack,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -35,6 +37,7 @@ import { getStudent } from '../api/students'
 import type { AssessmentOut, CategoryOut, LevelOut, StudentOut } from '../api/types'
 import { AssessmentModal } from '../components/AssessmentModal'
 import { AddEditStudentModal } from '../components/AddEditStudentModal'
+import { ProgressOverTimeChart } from '../components/ProgressOverTimeChart'
 import { shortCategoryLabel } from '../utils/categoryLabels'
 import { getCategoryVisual } from '../utils/categoryVisuals'
 
@@ -59,6 +62,7 @@ export function StudentProfilePage() {
   const [editingAssessment, setEditingAssessment] = useState<AssessmentOut | null>(null)
   const [deletingAssessment, setDeletingAssessment] = useState<AssessmentOut | null>(null)
   const [deletingAssessmentBusy, setDeletingAssessmentBusy] = useState(false)
+  const [progressTab, setProgressTab] = useState<'current' | 'over-time'>('current')
 
   const loadAll = useCallback(async () => {
     if (!studentId) return
@@ -83,7 +87,11 @@ export function StudentProfilePage() {
     setAssessments((prev) => {
       const exists = prev.some((a) => a.id === saved.id)
       const next = exists ? prev.map((a) => (a.id === saved.id ? saved : a)) : [saved, ...prev]
-      return [...next].sort((a, b) => (a.assessment_date < b.assessment_date ? 1 : -1))
+      // Match the API's ordering: most recent date first, with same-date entries grouped by category.
+      return [...next].sort((a, b) => {
+        if (a.assessment_date !== b.assessment_date) return a.assessment_date < b.assessment_date ? 1 : -1
+        return a.category_id - b.category_id
+      })
     })
   }
 
@@ -109,8 +117,8 @@ export function StudentProfilePage() {
 
   const currentLevelByCategory = useMemo(() => {
     const map = new Map<number, AssessmentOut>()
-    // assessments are ordered by assessment_date desc from the API, so the
-    // first match per category is that student's current (most recent) level.
+    // assessments are grouped by category with assessment_date desc within each
+    // group, so the first match per category is that student's current (most recent) level.
     for (const a of assessments) {
       if (!map.has(a.category_id)) {
         map.set(a.category_id, a)
@@ -175,65 +183,75 @@ export function StudentProfilePage() {
       </Stack>
 
       <Box>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5 }}>
-          Current progress
-        </Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 2,
-          }}
+        <Tabs
+          value={progressTab}
+          onChange={(_e, val) => setProgressTab(val)}
+          sx={{ minHeight: 40, mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
         >
-          {progressData.map((d) => {
-            const { icon: CategoryIcon, color } = getCategoryVisual(d.fullName)
-            return (
-              <Paper
-                key={d.id}
-                sx={{
-                  p: 2,
-                  borderLeft: '4px solid',
-                  borderLeftColor: d.atMax ? 'success.main' : color,
-                  '&:hover': { boxShadow: '0 6px 18px rgba(11,61,145,0.12)', transform: 'translateY(-2px)' },
-                }}
-              >
-                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                    <Box
-                      sx={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        bgcolor: `${color}1A`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <CategoryIcon sx={{ fontSize: 16, color }} />
-                    </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {d.fullName}
-                    </Typography>
+          <Tab label="Current Progress" value="current" sx={{ minHeight: 40, py: 1 }} />
+          <Tab label="Progress Over Time" value="over-time" sx={{ minHeight: 40, py: 1 }} />
+        </Tabs>
+
+        {progressTab === 'current' ? (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+              gap: 2,
+            }}
+          >
+            {progressData.map((d) => {
+              const { icon: CategoryIcon, color } = getCategoryVisual(d.fullName)
+              return (
+                <Paper
+                  key={d.id}
+                  sx={{
+                    p: 2,
+                    borderLeft: '4px solid',
+                    borderLeftColor: d.atMax ? 'success.main' : color,
+                    '&:hover': { boxShadow: '0 6px 18px rgba(11,61,145,0.12)', transform: 'translateY(-2px)' },
+                  }}
+                >
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          bgcolor: `${color}1A`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <CategoryIcon sx={{ fontSize: 16, color }} />
+                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {d.fullName}
+                      </Typography>
+                    </Stack>
+                    <Chip
+                      size="small"
+                      label={d.assessed ? `${d.level} of ${d.maxLevel}${d.atMax ? ' ✓' : ''}` : 'Not started'}
+                      color={d.atMax ? 'success' : d.assessed ? 'secondary' : 'default'}
+                      sx={{ fontWeight: 600 }}
+                    />
                   </Stack>
-                  <Chip
-                    size="small"
-                    label={d.assessed ? `${d.level} of ${d.maxLevel}${d.atMax ? ' ✓' : ''}` : 'Not started'}
-                    color={d.atMax ? 'success' : d.assessed ? 'secondary' : 'default'}
-                    sx={{ fontWeight: 600 }}
+                  <LinearProgress
+                    variant="determinate"
+                    value={d.maxLevel > 0 ? (d.level / d.maxLevel) * 100 : 0}
+                    color={d.atMax ? 'success' : 'secondary'}
+                    sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.200' }}
                   />
-                </Stack>
-                <LinearProgress
-                  variant="determinate"
-                  value={d.maxLevel > 0 ? (d.level / d.maxLevel) * 100 : 0}
-                  color={d.atMax ? 'success' : 'secondary'}
-                  sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.200' }}
-                />
-              </Paper>
-            )
-          })}
-        </Box>
+                </Paper>
+              )
+            })}
+          </Box>
+        ) : (
+          <ProgressOverTimeChart assessments={assessments} categories={categories} levelById={levelById} />
+        )}
       </Box>
 
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>

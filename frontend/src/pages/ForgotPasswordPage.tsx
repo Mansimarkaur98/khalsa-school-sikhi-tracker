@@ -22,7 +22,7 @@ export function ForgotPasswordPage() {
       if (isAxiosError(err) && err.response?.status === 404) {
         setError('No account found for that email.')
       } else if (isAxiosError(err) && err.response?.status === 422) {
-        setError('Enter a valid email address.')
+        setError('Invalid email address.')
       } else {
         setError('Unable to send reset link. Please try again.')
       }
@@ -72,7 +72,16 @@ export function ForgotPasswordPage() {
               label="Email Address"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                e.target.setCustomValidity('')
+                setEmail(e.target.value)
+              }}
+              onInvalid={(e) => {
+                const target = e.target as HTMLInputElement
+                if (target.validity.typeMismatch) {
+                  target.setCustomValidity('Invalid email address')
+                }
+              }}
               autoFocus
               required
               fullWidth

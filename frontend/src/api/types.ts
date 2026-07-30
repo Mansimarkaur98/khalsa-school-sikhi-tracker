@@ -45,6 +45,12 @@ export interface MessageResponse {
   message: string
 }
 
+export interface CurrentUserResponse {
+  first_name: string | null
+  last_name: string | null
+  display_name: string
+}
+
 // ---------- Students ----------
 export interface StudentListItem {
   student_id: string

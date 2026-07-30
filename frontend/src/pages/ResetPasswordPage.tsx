@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
+import { Alert, Box, Button, IconButton, InputAdornment, Stack, TextField, Typography } from '@mui/material'
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { isAxiosError } from 'axios'
 import { resetPassword } from '../api/auth'
@@ -14,6 +16,7 @@ export function ResetPasswordPage() {
 
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -81,17 +84,33 @@ export function ResetPasswordPage() {
 
           <TextField
             label="New password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             helperText="At least 8 characters"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             autoFocus
             required
             fullWidth
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((v) => !v)}
+                      edge="end"
+                      size="small"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
           <TextField
             label="Confirm new password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required

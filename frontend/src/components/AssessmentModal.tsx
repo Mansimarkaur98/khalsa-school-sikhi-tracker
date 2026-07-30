@@ -19,6 +19,7 @@ import dayjs, { type Dayjs } from 'dayjs'
 import { createAssessment, updateAssessment } from '../api/assessments'
 import { listCategories, listLevels } from '../api/categories'
 import type { AssessmentOut, CategoryOut, LevelOut } from '../api/types'
+import { useAuth } from '../context/AuthContext'
 
 function isBlockedMonth(date: Dayjs): boolean {
   const month = date.month() // 0-indexed: 6 = July, 7 = August
@@ -40,6 +41,7 @@ interface AssessmentModalProps {
 
 export function AssessmentModal({ open, onClose, onSaved, studentId, assessment }: AssessmentModalProps) {
   const isEdit = Boolean(assessment)
+  const { displayName } = useAuth()
 
   const [categories, setCategories] = useState<CategoryOut[]>([])
   const [levels, setLevels] = useState<LevelOut[]>([])
@@ -57,7 +59,7 @@ export function AssessmentModal({ open, onClose, onSaved, studentId, assessment 
       setCategoryId(assessment?.category_id ?? '')
       setLevelId(assessment?.level_id ?? '')
       setAssessmentDate(assessment ? dayjs(assessment.assessment_date) : defaultAssessmentDate())
-      setAssessedBy(assessment?.assessed_by ?? '')
+      setAssessedBy(assessment?.assessed_by ?? displayName ?? '')
       setComments(assessment?.comments ?? '')
       setError(null)
     }
@@ -168,6 +170,7 @@ export function AssessmentModal({ open, onClose, onSaved, studentId, assessment 
                 onChange={(e) => setAssessedBy(e.target.value)}
                 required
                 fullWidth
+                disabled
               />
             </Stack>
             <TextField

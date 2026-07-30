@@ -59,6 +59,12 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class CurrentUserResponse(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    display_name: str
+
+
 # ---------- Students ----------
 class StudentBase(BaseModel):
     first_name: str

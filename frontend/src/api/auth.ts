@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import type {
+  CurrentUserResponse,
   ForgotPasswordRequest,
   LoginRequest,
   MessageResponse,
@@ -37,5 +38,10 @@ export async function forgotPassword(payload: ForgotPasswordRequest): Promise<Me
 
 export async function resetPassword(payload: ResetPasswordRequest): Promise<TokenResponse> {
   const { data } = await apiClient.post<TokenResponse>('/api/v1/auth/reset-password', payload)
+  return data
+}
+
+export async function getCurrentUser(): Promise<CurrentUserResponse> {
+  const { data } = await apiClient.get<CurrentUserResponse>('/api/v1/auth/me')
   return data
 }
