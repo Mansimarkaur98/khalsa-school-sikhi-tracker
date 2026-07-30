@@ -55,7 +55,8 @@ export function SignupPage() {
         setError('An account with this email already exists.')
       } else if (isAxiosError(err) && err.response?.data?.detail) {
         const detail = err.response.data.detail
-        setError(Array.isArray(detail) ? detail[0]?.msg ?? 'Unable to sign up.' : String(detail))
+        const msg = Array.isArray(detail) ? detail[0]?.msg ?? 'Unable to sign up.' : String(detail)
+        setError(msg.replace(/^Value error,\s*/, ''))
       } else {
         setError('Unable to sign up. Please try again.')
       }
@@ -227,6 +228,15 @@ export function SignupPage() {
                   onChange={(e) => setLastName(e.target.value)}
                   required
                   fullWidth
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonOutlineIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
                 />
               </Stack>
               <TextField

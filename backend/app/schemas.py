@@ -17,6 +17,13 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
 
+    @field_validator("email")
+    @classmethod
+    def email_must_be_khalsa_domain(cls, v: str) -> str:
+        if not v.lower().endswith("@khalsaschool.ca"):
+            raise ValueError("Email must be a khalsaschool.ca address")
+        return v
+
     @field_validator("password")
     @classmethod
     def password_min_length(cls, v: str) -> str:
