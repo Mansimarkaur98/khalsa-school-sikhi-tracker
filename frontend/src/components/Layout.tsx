@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import LogoutIcon from '@mui/icons-material/Logout'
@@ -28,7 +29,7 @@ const IDLE_TIMEOUT_MS = 30 * 60 * 1000
 const IDLE_WARNING_MS = 60 * 1000
 
 export function Layout() {
-  const { logout } = useAuth()
+  const { logout, isAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [studentsMenuAnchor, setStudentsMenuAnchor] = useState<HTMLElement | null>(null)
@@ -130,6 +131,17 @@ export function Layout() {
           >
             Grade Progress
           </Button>
+          {isAdmin && (
+            <Button
+              component={NavLink}
+              to="/admin/users"
+              color="inherit"
+              startIcon={<AdminPanelSettingsOutlinedIcon />}
+              sx={{ '&.active': { fontWeight: 700, textDecoration: 'underline', textDecorationColor: 'secondary.main', textUnderlineOffset: '6px' } }}
+            >
+              Manage Users
+            </Button>
+          )}
           <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
             Log out
           </Button>

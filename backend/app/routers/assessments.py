@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user
+from app.auth import CurrentUserContext, get_current_user, get_current_user_context
 from app.database import get_db
 from app import models, schemas
 from app.term_utils import compute_term_and_year, BlockedAssessmentDateError
@@ -11,11 +11,20 @@ router = APIRouter(prefix="/api/v1/students/{student_id}/assessments", tags=["as
                     dependencies=[Depends(get_current_user)])
 
 
-@router.get("", response_model=list[schemas.AssessmentOut])
-def list_assessments(student_id: str, db: Session = Depends(get_db)):
+def _get_student_for_access(db: Session, student_id: str, ctx: CurrentUserContext) -> models.Student:
     student = db.get(models.Student, student_id)
-    if not student:
+    if not student or (not ctx.is_admin and student.school_id != ctx.school_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    return student
+
+
+@router.get("", response_model=list[schemas.AssessmentOut])
+def list_assessments(
+    student_id: str,
+    db: Session = Depends(get_db),
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+):
+    _get_student_for_access(db, student_id, ctx)
 
     query = (
         select(models.Assessment)
@@ -26,10 +35,13 @@ def list_assessments(student_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=schemas.AssessmentOut, status_code=status.HTTP_201_CREATED)
-def create_assessment(student_id: str, payload: schemas.AssessmentCreate, db: Session = Depends(get_db)):
-    student = db.get(models.Student, student_id)
-    if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+def create_assessment(
+    student_id: str,
+    payload: schemas.AssessmentCreate,
+    db: Session = Depends(get_db),
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+):
+    _get_student_for_access(db, student_id, ctx)
 
     level = db.get(models.CategoryLevel, payload.level_id)
     if not level or level.category_id != payload.category_id:
@@ -61,8 +73,14 @@ def create_assessment(student_id: str, payload: schemas.AssessmentCreate, db: Se
 
 @router.put("/{assessment_id}", response_model=schemas.AssessmentOut)
 def update_assessment(
-    student_id: str, assessment_id: int, payload: schemas.AssessmentCreate, db: Session = Depends(get_db)
+    student_id: str,
+    assessment_id: int,
+    payload: schemas.AssessmentCreate,
+    db: Session = Depends(get_db),
+    ctx: CurrentUserContext = Depends(get_current_user_context),
 ):
+    _get_student_for_access(db, student_id, ctx)
+
     assessment = db.get(models.Assessment, assessment_id)
     if not assessment or assessment.student_id != student_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
@@ -92,7 +110,14 @@ def update_assessment(
 
 
 @router.delete("/{assessment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_assessment(student_id: str, assessment_id: int, db: Session = Depends(get_db)):
+def delete_assessment(
+    student_id: str,
+    assessment_id: int,
+    db: Session = Depends(get_db),
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+):
+    _get_student_for_access(db, student_id, ctx)
+
     assessment = db.get(models.Assessment, assessment_id)
     if not assessment or assessment.student_id != student_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")

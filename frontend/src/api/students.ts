@@ -6,6 +6,7 @@ export interface StudentSearchParams {
   first_name?: string
   last_name?: string
   grade?: string
+  school_id?: number
   include_inactive?: boolean
 }
 

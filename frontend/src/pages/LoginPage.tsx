@@ -182,7 +182,6 @@ export function LoginPage() {
 
             <TextField
               label="Email Address"
-              placeholder="Email Address"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoFocus

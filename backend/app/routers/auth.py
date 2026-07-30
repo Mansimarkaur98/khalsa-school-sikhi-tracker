@@ -79,11 +79,14 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
             detail="An account with this email already exists",
         )
 
+    if not db.get(models.School, payload.school_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid school")
+
     user = models.User(
         username=payload.email,
         first_name=payload.first_name,
         last_name=payload.last_name,
-        school=payload.school,
+        school_id=payload.school_id,
         email=payload.email,
         password_hash=hash_password(payload.password),
         email_verified=False,
@@ -183,7 +186,11 @@ def get_me(current_user: str = Depends(get_current_user), db: Session = Depends(
         return CurrentUserResponse(
             first_name=user.first_name,
             last_name=user.last_name,
+            email=user.email,
             display_name=f"{user.first_name} {user.last_name}",
+            role=user.role,
+            school_id=user.school_id,
+            school_name=user.school.name if user.school else None,
         )
 
     # Shared staff login (or a legacy account with no name on file) — fall back to the username.

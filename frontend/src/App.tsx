@@ -1,6 +1,7 @@
 import { Navigate, Route, BrowserRouter, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AdminRoute } from './components/AdminRoute'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
@@ -10,6 +11,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { StudentListPage } from './pages/StudentListPage'
 import { StudentProfilePage } from './pages/StudentProfilePage'
 import { GradeProgressPage } from './pages/GradeProgressPage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
 
 function App() {
   return (
@@ -31,6 +33,14 @@ function App() {
             <Route path="/students" element={<StudentListPage />} />
             <Route path="/students/:studentId" element={<StudentProfilePage />} />
             <Route path="/grade-progress" element={<GradeProgressPage />} />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsersPage />
+                </AdminRoute>
+              }
+            />
           </Route>
           <Route path="/" element={<Navigate to="/students" replace />} />
           <Route path="*" element={<Navigate to="/students" replace />} />

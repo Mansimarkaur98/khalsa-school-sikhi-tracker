@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session, aliased
 
-from app.auth import get_current_user
+from app.auth import CurrentUserContext, get_current_user, get_current_user_context
 from app.database import get_db
 from app import models, schemas
 
@@ -10,11 +10,16 @@ router = APIRouter(prefix="/api/v1/grades", tags=["grades"], dependencies=[Depen
 
 
 @router.get("/{grade}/progress", response_model=list[schemas.GradeProgressItem])
-def grade_progress(grade: str, db: Session = Depends(get_db)):
+def grade_progress(
+    grade: str,
+    db: Session = Depends(get_db),
+    ctx: CurrentUserContext = Depends(get_current_user_context),
+):
     """
-    For every active student in `grade`, find each student's most recent
-    assessment per category (BR-3: current progress = latest by date), then
-    average that level across all students in the grade, per category.
+    For every active student in `grade` (scoped to the caller's school unless
+    they're an admin), find each student's most recent assessment per category
+    (BR-3: current progress = latest by date), then average that level across
+    all students in the grade, per category.
 
     Every active category is always included in the result, even if no
     student in this grade has an assessment in it yet (average_level will
@@ -25,7 +30,7 @@ def grade_progress(grade: str, db: Session = Depends(get_db)):
 
     # Step 1: rank each student's assessments per category, newest first.
     # row_number = 1 means "this is that student's current level in this category."
-    ranked = (
+    ranked_query = (
         select(
             A.student_id,
             A.category_id,
@@ -39,8 +44,10 @@ def grade_progress(grade: str, db: Session = Depends(get_db)):
         )
         .join(models.Student, models.Student.student_id == A.student_id)
         .where(models.Student.grade == grade, models.Student.active_status.is_(True))
-        .subquery()
     )
+    if not ctx.is_admin:
+        ranked_query = ranked_query.where(models.Student.school_id == ctx.school_id)
+    ranked = ranked_query.subquery()
 
     # Step 2: each student's current (rn = 1) level, joined to get level_number.
     current_levels = (

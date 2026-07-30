@@ -13,6 +13,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -41,8 +42,10 @@ import {
   restoreStudent,
   searchStudents,
 } from '../api/students'
-import { GRADE_OPTIONS, type StudentListItem, type StudentOut } from '../api/types'
+import { listSchools } from '../api/schools'
+import { GRADE_OPTIONS, type SchoolOut, type StudentListItem, type StudentOut } from '../api/types'
 import { AddEditStudentModal } from '../components/AddEditStudentModal'
+import { useAuth } from '../context/AuthContext'
 
 const pillFieldSx = {
   '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' },
@@ -50,12 +53,15 @@ const pillFieldSx = {
 
 export function StudentListPage() {
   const navigate = useNavigate()
+  const { isAdmin, schoolId: ownSchoolId, schoolName: ownSchoolName } = useAuth()
   const [searchParams] = useSearchParams()
   const view: 'active' | 'archived' = searchParams.get('view') === 'archived' ? 'archived' : 'active'
   const [studentId, setStudentId] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [grade, setGrade] = useState('')
+  const [schoolFilter, setSchoolFilter] = useState<number | ''>('')
+  const [schools, setSchools] = useState<SchoolOut[]>([])
   const [allResults, setAllResults] = useState<StudentListItem[]>([])
   const [loading, setLoading] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -67,6 +73,34 @@ export function StudentListPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  useEffect(() => {
+    listSchools().then(setSchools)
+  }, [])
+
+  const availableGrades = useMemo(() => {
+    if (schools.length === 0) return GRADE_OPTIONS
+    let relevant: SchoolOut[]
+    if (isAdmin) {
+      relevant = schoolFilter === '' ? schools : schools.filter((s) => s.id === schoolFilter)
+    } else {
+      relevant = schools.filter((s) => s.id === ownSchoolId)
+    }
+    if (relevant.length === 0) return GRADE_OPTIONS
+    const minGrade = Math.min(...relevant.map((s) => s.min_grade))
+    const maxGrade = Math.max(...relevant.map((s) => s.max_grade))
+    return GRADE_OPTIONS.filter((g) => {
+      const n = Number(g)
+      return !Number.isNaN(n) && n >= minGrade && n <= maxGrade
+    })
+  }, [schools, isAdmin, schoolFilter, ownSchoolId])
+
+  useEffect(() => {
+    if (grade && !availableGrades.includes(grade)) {
+      setGrade('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableGrades])
+
   async function runSearch() {
     setLoading(true)
     try {
@@ -75,6 +109,7 @@ export function StudentListPage() {
         first_name: firstName || undefined,
         last_name: lastName || undefined,
         grade: grade || undefined,
+        school_id: isAdmin && schoolFilter !== '' ? schoolFilter : undefined,
         include_inactive: true,
       })
       setAllResults(results)
@@ -87,7 +122,7 @@ export function StudentListPage() {
     const timer = setTimeout(runSearch, 300)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studentId, firstName, lastName, grade])
+  }, [studentId, firstName, lastName, grade, schoolFilter])
 
   const students = useMemo(
     () => allResults.filter((s) => s.active_status === (view === 'active')),
@@ -115,6 +150,7 @@ export function StudentListPage() {
     setFirstName('')
     setLastName('')
     setGrade('')
+    setSchoolFilter('')
   }
 
   async function handleConfirmArchive() {
@@ -166,9 +202,15 @@ export function StudentListPage() {
     }
   }
 
-  const hasFilters = Boolean(studentId || firstName || lastName || grade)
+  const hasFilters = Boolean(studentId || firstName || lastName || grade || schoolFilter)
 
   const gradeCount = useMemo(() => new Set(students.map((s) => s.grade)).size, [students])
+
+  const headingSchoolLabel = isAdmin
+    ? schoolFilter === ''
+      ? 'All Schools'
+      : schools.find((s) => s.id === schoolFilter)?.name
+    : ownSchoolName
 
   return (
     <Stack spacing={3}>
@@ -176,6 +218,21 @@ export function StudentListPage() {
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           {view === 'archived' ? 'Archived Students' : 'Active Students'}
         </Typography>
+        {headingSchoolLabel && (
+          <Chip
+            icon={<SchoolIcon sx={{ fontSize: 20 }} />}
+            label={headingSchoolLabel}
+            sx={{
+              fontWeight: 600,
+              fontSize: '1rem',
+              height: 34,
+              px: 0.5,
+              bgcolor: 'rgba(11,61,145,0.08)',
+              color: 'primary.main',
+              '& .MuiChip-icon': { color: 'primary.main' },
+            }}
+          />
+        )}
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -266,12 +323,29 @@ export function StudentListPage() {
           sx={{ minWidth: 140, ...pillFieldSx }}
         >
           <MenuItem value="">All grades</MenuItem>
-          {GRADE_OPTIONS.map((g) => (
+          {availableGrades.map((g) => (
             <MenuItem key={g} value={g}>
               {g === 'K' ? 'Kindergarten' : `Grade ${g}`}
             </MenuItem>
           ))}
         </TextField>
+        {isAdmin && (
+          <TextField
+            select
+            value={schoolFilter}
+            onChange={(e) => setSchoolFilter(e.target.value === '' ? '' : Number(e.target.value))}
+            size="small"
+            slotProps={{ select: { displayEmpty: true } }}
+            sx={{ minWidth: 200, ...pillFieldSx }}
+          >
+            <MenuItem value="">All schools</MenuItem>
+            {schools.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
         <Button
           variant="outlined"
           startIcon={<ClearIcon />}
@@ -300,6 +374,7 @@ export function StudentListPage() {
               <TableCell sx={{ whiteSpace: 'nowrap' }}>First Name</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>Last Name</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>Grade</TableCell>
+              {isAdmin && <TableCell sx={{ whiteSpace: 'nowrap' }}>School</TableCell>}
               <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -319,6 +394,7 @@ export function StudentListPage() {
                 <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.first_name}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.last_name}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.grade === 'K' ? 'Kindergarten' : `Grade ${s.grade}`}</TableCell>
+                {isAdmin && <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.school_name}</TableCell>}
                 <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3, py: 1 }}>
                   <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                     <Button
@@ -377,20 +453,22 @@ export function StudentListPage() {
                             <UnarchiveOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete permanently">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteError(null)
-                              setDeletingStudent(s)
-                            }}
-                            sx={{ border: '1px solid', borderColor: 'error.main' }}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {isAdmin && (
+                          <Tooltip title="Delete permanently">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteError(null)
+                                setDeletingStudent(s)
+                              }}
+                              sx={{ border: '1px solid', borderColor: 'error.main' }}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </>
                     )}
                   </Stack>
@@ -399,7 +477,7 @@ export function StudentListPage() {
             ))}
             {students.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={isAdmin ? 7 : 6}>
                   <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
                     {view === 'active' ? 'No students found.' : 'No archived students.'}
                   </Box>
@@ -410,7 +488,12 @@ export function StudentListPage() {
         </Table>
       </TableContainer>
 
-      <AddEditStudentModal open={addOpen} onClose={() => setAddOpen(false)} onSaved={handleStudentAdded} />
+      <AddEditStudentModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSaved={handleStudentAdded}
+        defaultSchoolId={schoolFilter === '' ? undefined : schoolFilter}
+      />
       <AddEditStudentModal
         open={editingStudent !== null}
         onClose={() => setEditingStudent(null)}

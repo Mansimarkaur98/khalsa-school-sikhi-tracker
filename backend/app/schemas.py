@@ -13,7 +13,7 @@ class LoginRequest(BaseModel):
 class SignupRequest(BaseModel):
     first_name: str
     last_name: str
-    school: str
+    school_id: int
     email: EmailStr
     password: str
 
@@ -69,7 +69,36 @@ class MessageResponse(BaseModel):
 class CurrentUserResponse(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    email: Optional[str] = None
     display_name: str
+    role: str = "teacher"
+    school_id: Optional[int] = None
+    school_name: Optional[str] = None
+
+
+# ---------- Schools ----------
+class SchoolOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    min_grade: int
+    max_grade: int
+
+
+# ---------- Admin ----------
+class AdminUserOut(BaseModel):
+    id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    role: str
+    email_verified: bool
+    school_id: Optional[int] = None
+    school_name: Optional[str] = None
+
+
+class AdminUserSchoolUpdate(BaseModel):
+    school_id: int
 
 
 # ---------- Students ----------
@@ -89,6 +118,7 @@ class StudentBase(BaseModel):
 
 class StudentCreate(StudentBase):
     student_id: str
+    school_id: Optional[int] = None  # ignored for non-admins (server sets it from their own school)
 
     @field_validator("student_id")
     @classmethod
@@ -100,6 +130,7 @@ class StudentCreate(StudentBase):
 
 class StudentUpdate(StudentBase):
     student_id: Optional[str] = None  # editable only while the student has no assessment history
+    school_id: Optional[int] = None  # admin-only reassignment (e.g. moving up to a secondary school)
 
     @field_validator("student_id")
     @classmethod
@@ -118,6 +149,8 @@ class StudentOut(StudentBase):
     created_at: datetime
     updated_at: datetime
     has_assessments: bool = False
+    school_id: int
+    school_name: Optional[str] = None
 
 
 class StudentListItem(BaseModel):
@@ -129,6 +162,8 @@ class StudentListItem(BaseModel):
     grade: str
     photo_url: Optional[str] = None
     active_status: bool
+    school_id: int
+    school_name: Optional[str] = None
 
 
 # ---------- Categories & Levels ----------

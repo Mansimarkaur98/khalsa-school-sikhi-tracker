@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, students, assessments, categories, grades
+from app.routers import auth, students, assessments, categories, grades, schools, admin
 
 app = FastAPI(title="Khalsa School Sikhi Progress Tracker API", version="1.0.0")
 
@@ -21,6 +21,8 @@ app.include_router(students.router)
 app.include_router(assessments.router)
 app.include_router(categories.router)
 app.include_router(grades.router)
+app.include_router(schools.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

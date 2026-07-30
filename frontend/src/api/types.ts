@@ -18,7 +18,7 @@ export interface TokenResponse {
 export interface SignupRequest {
   first_name: string
   last_name: string
-  school: string
+  school_id: number
   email: string
   password: string
 }
@@ -48,7 +48,35 @@ export interface MessageResponse {
 export interface CurrentUserResponse {
   first_name: string | null
   last_name: string | null
+  email: string | null
   display_name: string
+  role: string
+  school_id: number | null
+  school_name: string | null
+}
+
+// ---------- Schools ----------
+export interface SchoolOut {
+  id: number
+  name: string
+  min_grade: number
+  max_grade: number
+}
+
+// ---------- Admin ----------
+export interface AdminUserOut {
+  id: number
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  role: string
+  email_verified: boolean
+  school_id: number | null
+  school_name: string | null
+}
+
+export interface AdminUserSchoolUpdate {
+  school_id: number
 }
 
 // ---------- Students ----------
@@ -59,6 +87,8 @@ export interface StudentListItem {
   grade: string
   photo_url: string | null
   active_status: boolean
+  school_id: number
+  school_name: string | null
 }
 
 export interface StudentOut {
@@ -71,6 +101,8 @@ export interface StudentOut {
   created_at: string
   updated_at: string
   has_assessments: boolean
+  school_id: number
+  school_name: string | null
 }
 
 export interface StudentCreate {
@@ -78,6 +110,7 @@ export interface StudentCreate {
   first_name: string
   last_name: string
   grade: string
+  school_id?: number
 }
 
 export interface StudentUpdate {
@@ -85,6 +118,7 @@ export interface StudentUpdate {
   last_name: string
   grade: string
   student_id?: string
+  school_id?: number
 }
 
 export interface ConflictingStudent {

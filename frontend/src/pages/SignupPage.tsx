@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutlined'
@@ -21,15 +21,16 @@ import {
 import { Link as RouterLink } from 'react-router-dom'
 import { isAxiosError } from 'axios'
 import { signup } from '../api/auth'
+import { listSchools } from '../api/schools'
+import type { SchoolOut } from '../api/types'
 import khalsaLogo from '../assets/khalsa-logo.jpeg'
 import gurdwaraHall from '../assets/gurdwara-hall.jpg'
 
-const SCHOOL_OPTIONS = ['Khalsa School Newton', 'Khalsa School Old Yale Road', 'Khalsa School Fraser Valley']
-
 export function SignupPage() {
+  const [schools, setSchools] = useState<SchoolOut[]>([])
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [school, setSchool] = useState('')
+  const [schoolId, setSchoolId] = useState<number | ''>('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -37,15 +38,20 @@ export function SignupPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
 
+  useEffect(() => {
+    listSchools().then(setSchools)
+  }, [])
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (schoolId === '') return
     setError(null)
     setSubmitting(true)
     try {
       const { email: confirmedEmail } = await signup({
         first_name: firstName,
         last_name: lastName,
-        school,
+        school_id: schoolId,
         email,
         password,
       })
@@ -242,8 +248,8 @@ export function SignupPage() {
               <TextField
                 select
                 label="School"
-                value={school}
-                onChange={(e) => setSchool(e.target.value)}
+                value={schoolId}
+                onChange={(e) => setSchoolId(Number(e.target.value))}
                 required
                 fullWidth
                 slotProps={{
@@ -256,9 +262,9 @@ export function SignupPage() {
                   },
                 }}
               >
-                {SCHOOL_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
+                {schools.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.name}
                   </MenuItem>
                 ))}
               </TextField>
