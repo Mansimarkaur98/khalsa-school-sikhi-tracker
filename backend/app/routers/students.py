@@ -128,8 +128,8 @@ def create_student(
     student = models.Student(**{
         **payload.model_dump(exclude={"school_id"}),
         "school_id": school_id,
-        "created_by": ctx.identifier,
-        "updated_by": ctx.identifier,
+        "created_by": ctx.display_name,
+        "updated_by": ctx.display_name,
     })
     db.add(student)
     db.commit()
@@ -195,7 +195,7 @@ def update_student(
         setattr(student, field, value)
     if payload.school_id:
         student.school_id = payload.school_id
-    student.updated_by = ctx.identifier
+    student.updated_by = ctx.display_name
     db.commit()
     db.refresh(student)
     return _to_student_out(student, db)

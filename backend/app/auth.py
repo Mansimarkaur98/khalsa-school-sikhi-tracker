@@ -57,6 +57,7 @@ class CurrentUserContext:
     identifier: str
     role: str
     school_id: Optional[int]
+    display_name: str
 
     @property
     def is_admin(self) -> bool:
@@ -73,8 +74,11 @@ def get_current_user_context(
     """
     user = db.execute(select(models.User).where(models.User.email == current_user)).scalar_one_or_none()
     if user:
-        return CurrentUserContext(identifier=current_user, role=user.role, school_id=user.school_id)
-    return CurrentUserContext(identifier=current_user, role="teacher", school_id=None)
+        display_name = f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else current_user
+        return CurrentUserContext(
+            identifier=current_user, role=user.role, school_id=user.school_id, display_name=display_name
+        )
+    return CurrentUserContext(identifier=current_user, role="teacher", school_id=None, display_name=current_user)
 
 
 def require_admin(ctx: CurrentUserContext = Depends(get_current_user_context)) -> CurrentUserContext:
