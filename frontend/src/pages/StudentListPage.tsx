@@ -188,12 +188,8 @@ export function StudentListPage() {
       setAllResults((prev) => prev.filter((s) => s.student_id !== deletingStudent.student_id))
       setDeletingStudent(null)
     } catch (err) {
-      if (isAxiosError(err) && err.response?.status === 409) {
-        setDeleteError(
-          typeof err.response.data.detail === 'string'
-            ? err.response.data.detail
-            : 'This student has assessment history and cannot be permanently deleted.',
-        )
+      if (isAxiosError(err) && typeof err.response?.data?.detail === 'string') {
+        setDeleteError(err.response.data.detail)
       } else {
         setDeleteError('Unable to delete this student. Please try again.')
       }
@@ -539,8 +535,8 @@ export function StudentListPage() {
                 <>
                   This <strong>permanently</strong> deletes{' '}
                   <strong>{deletingStudent.first_name} {deletingStudent.last_name}</strong> (ID{' '}
-                  {deletingStudent.student_id}) and cannot be undone. Only allowed if they have no assessment
-                  history — otherwise, keep them archived.
+                  {deletingStudent.student_id}) <strong>and all of their assessment history</strong>. This
+                  cannot be undone.
                 </>
               )}
             </DialogContentText>

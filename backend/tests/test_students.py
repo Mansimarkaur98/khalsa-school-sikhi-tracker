@@ -229,7 +229,7 @@ def test_permanent_delete_requires_archiving_first(client, admin_headers, teache
     assert response.status_code == 400
 
 
-def test_permanent_delete_blocked_if_has_assessments(client, admin_headers, teacher_headers, category):
+def test_permanent_delete_also_deletes_assessment_history(client, admin_headers, teacher_headers, category):
     cat, level = category
     client.post("/api/v1/students", json=student_payload(), headers=teacher_headers)
     client.post(
@@ -245,7 +245,10 @@ def test_permanent_delete_blocked_if_has_assessments(client, admin_headers, teac
     client.delete("/api/v1/students/100000001", headers=teacher_headers)
 
     response = client.delete("/api/v1/students/100000001/permanent", headers=admin_headers)
-    assert response.status_code == 409
+    assert response.status_code == 204
+
+    get_response = client.get("/api/v1/students/100000001", headers=admin_headers)
+    assert get_response.status_code == 404
 
 
 def test_admin_permanent_delete_succeeds_when_archived_and_no_assessments(client, admin_headers, teacher_headers):

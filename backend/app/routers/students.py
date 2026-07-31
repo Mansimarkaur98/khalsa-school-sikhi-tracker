@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.auth import CurrentUserContext, get_current_user, get_current_user_context
@@ -277,9 +277,9 @@ def permanently_delete_student(
     db: Session = Depends(get_db),
     ctx: CurrentUserContext = Depends(get_current_user_context),
 ):
-    """Hard-deletes a student. Only allowed once archived, and only if they
-    have zero assessment history — otherwise archiving is the end state, by
-    design, so that assessment records are never silently lost. Admin-only."""
+    """Hard-deletes a student and all of their assessment history. Only allowed
+    once archived — archiving remains the reversible first step, but this
+    action itself is permanent and irreversible. Admin-only."""
     if not ctx.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only an admin can permanently delete a student")
 
@@ -289,14 +289,7 @@ def permanently_delete_student(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Archive this student before permanently deleting them.",
         )
-    has_assessments = db.execute(
-        select(models.Assessment.id).where(models.Assessment.student_id == student_id).limit(1)
-    ).first()
-    if has_assessments:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This student has assessment history and cannot be permanently deleted.",
-        )
+    db.execute(delete(models.Assessment).where(models.Assessment.student_id == student_id))
     if student.photo_url:
         delete_student_photo(student_id)
     db.delete(student)
