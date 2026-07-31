@@ -10,6 +10,7 @@ from app import models, schemas
 from app.cloudinary_utils import (
     upload_student_photo,
     delete_student_photo,
+    get_student_photo_url,
     MAX_PHOTO_SIZE_BYTES,
     ALLOWED_CONTENT_TYPES,
 )
@@ -36,6 +37,8 @@ def _to_student_out(student: models.Student, db: Session) -> schemas.StudentOut:
     result = schemas.StudentOut.model_validate(student)
     result.has_assessments = _has_assessments(db, student.student_id)
     result.school_name = student.school.name if student.school else None
+    if student.photo_url:
+        result.photo_url = get_student_photo_url(student.student_id)
     return result
 
 
@@ -85,6 +88,8 @@ def list_students(
     for s in students:
         item = schemas.StudentListItem.model_validate(s)
         item.school_name = s.school.name if s.school else None
+        if item.photo_url:
+            item.photo_url = get_student_photo_url(s.student_id)
         results.append(item)
     return results
 

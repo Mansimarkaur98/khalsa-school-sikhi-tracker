@@ -85,6 +85,16 @@ def _no_real_emails(monkeypatch):
     monkeypatch.setattr("app.routers.auth.send_password_reset_email", lambda *a, **k: None)
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _disable_rate_limiting():
+    """slowapi's in-memory limiter is process-wide, so it'd otherwise throttle
+    across unrelated test functions within the same pytest run — not what
+    rate limiting is meant to protect against here."""
+    from app.rate_limit import limiter
+
+    limiter.enabled = False
+
+
 # ---------- Data factories ----------
 
 @pytest.fixture()

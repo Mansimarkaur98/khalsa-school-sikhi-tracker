@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,7 @@ from app.auth import create_access_token, get_current_user, hash_password, verif
 from app.config import settings
 from app.database import get_db
 from app.email_utils import send_activation_email, send_password_reset_email
+from app.rate_limit import limiter
 from app.schemas import (
     CurrentUserResponse,
     ForgotPasswordRequest,
@@ -44,7 +45,8 @@ def _is_expired(expires_at) -> bool:
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     # Shared staff login (env-configured), kept alongside individual signed-up accounts.
     if payload.username == settings.app_username and verify_password(
         payload.password, settings.app_password_hash
@@ -69,7 +71,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
-def signup(payload: SignupRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")
+def signup(request: Request, payload: SignupRequest, db: Session = Depends(get_db)):
     existing = db.execute(
         select(models.User).where(models.User.email == payload.email)
     ).scalar_one_or_none()
@@ -122,7 +125,8 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/resend-verification", response_model=SignupResponse)
-def resend_verification(payload: ResendVerificationRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/hour")
+def resend_verification(request: Request, payload: ResendVerificationRequest, db: Session = Depends(get_db)):
     user = db.execute(
         select(models.User).where(models.User.email == payload.email)
     ).scalar_one_or_none()
@@ -139,7 +143,8 @@ def resend_verification(payload: ResendVerificationRequest, db: Session = Depend
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/hour")
+def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.execute(
         select(models.User).where(models.User.email == payload.email)
     ).scalar_one_or_none()
