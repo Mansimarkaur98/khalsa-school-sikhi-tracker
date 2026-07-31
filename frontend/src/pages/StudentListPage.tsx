@@ -310,21 +310,6 @@ export function StudentListPage() {
           fullWidth
           sx={pillFieldSx}
         />
-        <TextField
-          select
-          value={grade}
-          onChange={(e) => setGrade(e.target.value)}
-          size="small"
-          slotProps={{ select: { displayEmpty: true } }}
-          sx={{ minWidth: 140, ...pillFieldSx }}
-        >
-          <MenuItem value="">All grades</MenuItem>
-          {availableGrades.map((g) => (
-            <MenuItem key={g} value={g}>
-              {g === 'K' ? 'Kindergarten' : `Grade ${g}`}
-            </MenuItem>
-          ))}
-        </TextField>
         {isAdmin && (
           <TextField
             select
@@ -342,6 +327,21 @@ export function StudentListPage() {
             ))}
           </TextField>
         )}
+        <TextField
+          select
+          value={grade}
+          onChange={(e) => setGrade(e.target.value)}
+          size="small"
+          slotProps={{ select: { displayEmpty: true } }}
+          sx={{ minWidth: 140, ...pillFieldSx }}
+        >
+          <MenuItem value="">All grades</MenuItem>
+          {availableGrades.map((g) => (
+            <MenuItem key={g} value={g}>
+              {g === 'K' ? 'Kindergarten' : `Grade ${g}`}
+            </MenuItem>
+          ))}
+        </TextField>
         <Button
           variant="outlined"
           startIcon={<ClearIcon />}
@@ -369,8 +369,8 @@ export function StudentListPage() {
               <TableCell sx={{ whiteSpace: 'nowrap' }}>Student ID</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>First Name</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>Last Name</TableCell>
-              <TableCell sx={{ whiteSpace: 'nowrap' }}>Grade</TableCell>
               {isAdmin && <TableCell sx={{ whiteSpace: 'nowrap' }}>School</TableCell>}
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>Grade</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -389,8 +389,8 @@ export function StudentListPage() {
                 <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.student_id}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.first_name}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.last_name}</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.grade === 'K' ? 'Kindergarten' : `Grade ${s.grade}`}</TableCell>
                 {isAdmin && <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.school_name}</TableCell>}
+                <TableCell sx={{ whiteSpace: 'nowrap', py: 1 }}>{s.grade === 'K' ? 'Kindergarten' : `Grade ${s.grade}`}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3, py: 1 }}>
                   <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                     <Button
