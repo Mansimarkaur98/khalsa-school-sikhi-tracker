@@ -107,11 +107,3 @@ against production once, since nothing does that automatically:
 
 If a change doesn't touch the database schema, there's nothing extra to do.
 
-## Note on `khalsaschool.ca/sikhitracker`
-
-Deploying under a subpath of the school's actual live domain is a different
-(and riskier) undertaking — it requires access to whoever manages that
-domain's DNS/hosting (reverse proxy config, SSL certs), since a mistake
-there affects the real site, not just this app. This runbook deliberately
-covers the standalone path instead. If you later get access to that
-hosting, ask and we can figure out the reverse-proxy config together.
