@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     app_password_hash: str
     cloudinary_url: str
 
+    # "development" (default) leaves the interactive API docs open; set to
+    # "production" in the deployed environment to close them off.
+    environment: str = "development"
+
     # Signup account-activation email. Left unset in dev — send_activation_email()
     # falls back to logging the link to the console when these aren't configured.
     smtp_host: str = "smtp.gmail.com"

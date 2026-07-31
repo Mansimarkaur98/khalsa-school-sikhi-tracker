@@ -95,7 +95,7 @@ export function StudentListPage() {
   }, [schools, isAdmin, schoolFilter, ownSchoolId])
 
   useEffect(() => {
-    if (grade && !availableGrades.includes(grade)) {
+    if (grade && !(availableGrades as string[]).includes(grade)) {
       setGrade('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -4,20 +4,29 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.config import settings
 from app.rate_limit import limiter
 from app.routers import auth, students, assessments, categories, grades, schools, admin
 
-app = FastAPI(title="Khalsa School Sikhi Progress Tracker API", version="1.0.0")
+_is_production = settings.environment == "production"
+
+app = FastAPI(
+    title="Khalsa School Sikhi Progress Tracker API",
+    version="1.0.0",
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None if _is_production else "/redoc",
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 # Vite falls back to 5174, 5175, etc. whenever its default port is taken, so match
-# any localhost dev port rather than hardcoding 5173 — add your deployed frontend
-# origin to allow_origins later for production.
+# any localhost dev port rather than hardcoding 5173. FRONTEND_URL (set in .env)
+# is added explicitly so the deployed frontend's real origin is allowed too.
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[settings.frontend_url],
     allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
