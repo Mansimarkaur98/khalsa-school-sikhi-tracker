@@ -39,6 +39,9 @@ export function AdminUsersPage() {
   const [deletingUser, setDeletingUser] = useState<AdminUserOut | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingSchoolChange, setPendingSchoolChange] = useState<{ user: AdminUserOut; newSchoolId: number } | null>(
+    null,
+  )
 
   async function loadAll() {
     setLoading(true)
@@ -66,6 +69,13 @@ export function AdminUsersPage() {
     } finally {
       setSavingUserId(null)
     }
+  }
+
+  async function handleConfirmSchoolChange() {
+    if (!pendingSchoolChange) return
+    const { user, newSchoolId } = pendingSchoolChange
+    setPendingSchoolChange(null)
+    await handleSchoolChange(user.id, newSchoolId)
   }
 
   async function handleConfirmDelete() {
@@ -121,7 +131,11 @@ export function AdminUsersPage() {
                     size="small"
                     value={u.school_id ?? ''}
                     disabled={savingUserId === u.id}
-                    onChange={(e) => handleSchoolChange(u.id, Number(e.target.value))}
+                    onChange={(e) => {
+                      const newSchoolId = Number(e.target.value)
+                      if (newSchoolId === u.school_id) return
+                      setPendingSchoolChange({ user: u, newSchoolId })
+                    }}
                     fullWidth
                   >
                     {schools.map((s) => (
@@ -173,6 +187,41 @@ export function AdminUsersPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Dialog
+        open={pendingSchoolChange !== null}
+        onClose={() => setPendingSchoolChange(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>Change this user's school?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {pendingSchoolChange && (
+              <>
+                Move{' '}
+                <strong>
+                  {pendingSchoolChange.user.first_name} {pendingSchoolChange.user.last_name}
+                </strong>{' '}
+                from{' '}
+                <strong>
+                  {schools.find((s) => s.id === pendingSchoolChange.user.school_id)?.name ?? 'no school'}
+                </strong>{' '}
+                to <strong>{schools.find((s) => s.id === pendingSchoolChange.newSchoolId)?.name}</strong>? They will
+                only see and manage that school's students afterward.
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setPendingSchoolChange(null)} disabled={savingUserId !== null}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmSchoolChange} variant="contained" disabled={savingUserId !== null}>
+            {savingUserId !== null ? 'Saving…' : 'Confirm change'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={deletingUser !== null} onClose={() => setDeletingUser(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>Delete this account?</DialogTitle>
