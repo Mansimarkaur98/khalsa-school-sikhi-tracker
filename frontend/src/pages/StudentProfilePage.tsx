@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import EditIcon from '@mui/icons-material/Edit'
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import {
   Avatar,
   Box,
@@ -33,8 +35,9 @@ import {
 import { Link, useParams } from 'react-router-dom'
 import { deleteAssessment, listAssessments } from '../api/assessments'
 import { listCategories, listLevels } from '../api/categories'
+import { listGoals } from '../api/goals'
 import { getStudent } from '../api/students'
-import type { AssessmentOut, CategoryOut, LevelOut, StudentOut } from '../api/types'
+import type { AssessmentOut, CategoryOut, GoalOut, LevelOut, StudentOut } from '../api/types'
 import { AssessmentModal } from '../components/AssessmentModal'
 import { AddEditStudentModal } from '../components/AddEditStudentModal'
 import { ProgressOverTimeChart } from '../components/ProgressOverTimeChart'
@@ -50,6 +53,11 @@ function formatDate(iso: string): string {
   })
 }
 
+function formatMonthYear(iso: string): string {
+  const [year, month] = iso.split('-').map(Number)
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+}
+
 export function StudentProfilePage() {
   const { studentId } = useParams<{ studentId: string }>()
 
@@ -57,23 +65,27 @@ export function StudentProfilePage() {
   const [categories, setCategories] = useState<CategoryOut[]>([])
   const [levelsByCategory, setLevelsByCategory] = useState<Record<number, LevelOut[]>>({})
   const [assessments, setAssessments] = useState<AssessmentOut[]>([])
+  const [goals, setGoals] = useState<GoalOut[]>([])
   const [editOpen, setEditOpen] = useState(false)
   const [addAssessmentOpen, setAddAssessmentOpen] = useState(false)
   const [editingAssessment, setEditingAssessment] = useState<AssessmentOut | null>(null)
   const [deletingAssessment, setDeletingAssessment] = useState<AssessmentOut | null>(null)
   const [deletingAssessmentBusy, setDeletingAssessmentBusy] = useState(false)
   const [progressTab, setProgressTab] = useState<'current' | 'over-time'>('current')
+  const [historyTab, setHistoryTab] = useState<'assessments' | 'goals'>('assessments')
 
   const loadAll = useCallback(async () => {
     if (!studentId) return
-    const [studentData, categoryData, assessmentData] = await Promise.all([
+    const [studentData, categoryData, assessmentData, goalData] = await Promise.all([
       getStudent(studentId),
       listCategories(),
       listAssessments(studentId),
+      listGoals(studentId),
     ])
     setStudent(studentData)
     setCategories(categoryData)
     setAssessments(assessmentData)
+    setGoals(goalData)
 
     const levelEntries = await Promise.all(categoryData.map((c) => listLevels(c.id).then((ls) => [c.id, ls] as const)))
     setLevelsByCategory(Object.fromEntries(levelEntries))
@@ -93,6 +105,10 @@ export function StudentProfilePage() {
         return a.category_id - b.category_id
       })
     })
+  }
+
+  function handleGoalSaved(saved: GoalOut) {
+    setGoals((prev) => [saved, ...prev])
   }
 
   async function handleConfirmDeleteAssessment() {
@@ -127,6 +143,25 @@ export function StudentProfilePage() {
     return map
   }, [assessments])
 
+  const currentGoalByCategory = useMemo(() => {
+    const map = new Map<number, GoalOut>()
+    // goals come back most-recent-first, so the first match per category is current.
+    for (const g of goals) {
+      if (!map.has(g.category_id)) {
+        map.set(g.category_id, g)
+      }
+    }
+    return map
+  }, [goals])
+
+  function isGoalAchieved(goal: GoalOut): boolean {
+    const targetLevel = levelById.get(goal.target_level_id)
+    const current = currentLevelByCategory.get(goal.category_id)
+    if (!targetLevel || !current) return false
+    const currentLevelNumber = levelById.get(current.level_id)?.level_number ?? 0
+    return currentLevelNumber >= targetLevel.level_number
+  }
+
   const progressData = useMemo(() => {
     return categories.map((category) => {
       const levels = levelsByCategory[category.id] ?? []
@@ -134,17 +169,21 @@ export function StudentProfilePage() {
       const current = currentLevelByCategory.get(category.id)
       const currentLevelNumber = current ? levelById.get(current.level_id)?.level_number ?? 0 : 0
       const atMax = maxLevel > 0 && currentLevelNumber === maxLevel
+      const goal = currentGoalByCategory.get(category.id)
+      const targetLevelNumber = goal ? levelById.get(goal.target_level_id)?.level_number : undefined
       return {
         id: category.id,
         category: shortCategoryLabel(category.category_name),
         fullName: category.category_name,
         level: currentLevelNumber,
         maxLevel,
+        targetLevelNumber,
+        targetDate: goal?.target_date,
         assessed: Boolean(current),
         atMax,
       }
     })
-  }, [categories, levelsByCategory, currentLevelByCategory, levelById])
+  }, [categories, levelsByCategory, currentLevelByCategory, currentGoalByCategory, levelById])
 
   if (!student) {
     return null
@@ -245,27 +284,127 @@ export function StudentProfilePage() {
                     color={d.atMax ? 'success' : 'secondary'}
                     sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.200' }}
                   />
+                  {d.targetLevelNumber && d.targetDate && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                      Target: Level {d.targetLevelNumber} by {formatMonthYear(d.targetDate)}
+                    </Typography>
+                  )}
                 </Paper>
               )
             })}
           </Box>
         ) : (
-          <ProgressOverTimeChart assessments={assessments} categories={categories} levelById={levelById} />
+          <ProgressOverTimeChart assessments={assessments} categories={categories} levelById={levelById} goals={goals} />
         )}
       </Box>
 
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Assessment history
-        </Typography>
-        {assessments.length > 0 && (
+        <Tabs
+          value={historyTab}
+          onChange={(_e, val) => setHistoryTab(val)}
+          sx={{ minHeight: 40, borderBottom: '1px solid', borderColor: 'divider' }}
+        >
+          <Tab label="Assessment History" value="assessments" sx={{ minHeight: 40, py: 1 }} />
+          <Tab label="Goals" value="goals" sx={{ minHeight: 40, py: 1 }} />
+        </Tabs>
+        {historyTab === 'assessments' && assessments.length > 0 && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddAssessmentOpen(true)}>
             Add assessment
           </Button>
         )}
       </Stack>
 
-      {assessments.length === 0 ? (
+      {historyTab === 'assessments' ? (
+        assessments.length === 0 ? (
+          <Paper sx={{ py: 6, px: 3, textAlign: 'center' }}>
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                borderRadius: 2,
+                bgcolor: 'secondary.light',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 2,
+                opacity: 0.5,
+              }}
+            >
+              <AssignmentOutlinedIcon sx={{ color: 'secondary.dark' }} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+              No assessments yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              This student has not been assessed in any category.
+              <br />
+              Add the first assessment to start tracking progress.
+            </Typography>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddAssessmentOpen(true)}>
+              Add assessment
+            </Button>
+          </Paper>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: '#E3E9F4' }}>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Date</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Academic Year</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Term</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Category</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Level</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Assessed By</TableCell>
+                  <TableCell sx={{ width: 220 }}>Comments</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {assessments.map((a) => {
+                  const level = levelById.get(a.level_id)
+                  const category = categories.find((c) => c.id === a.category_id)
+                  return (
+                    <TableRow key={a.id} sx={{ '&:nth-of-type(odd)': { bgcolor: '#FAF8F2' } }}>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(a.assessment_date)}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{a.academic_year}</TableCell>
+                      <TableCell>{a.assessment_term}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{category?.category_name ?? a.category_id}</TableCell>
+                      <TableCell>{level ? `${level.level_number} — ${level.description}` : a.level_id}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{a.assessed_by}</TableCell>
+                      <TableCell sx={{ width: 220 }}>{a.comments}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3 }}>
+                        <Stack direction="row" spacing={0.5}>
+                          <Tooltip title="Edit assessment">
+                            <IconButton
+                              size="small"
+                              color="warning"
+                              onClick={() => setEditingAssessment(a)}
+                              sx={{ border: '1px solid', borderColor: 'warning.main' }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete assessment">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => setDeletingAssessment(a)}
+                              sx={{ border: '1px solid', borderColor: 'error.main' }}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )
+      ) : goals.length === 0 ? (
         <Paper sx={{ py: 6, px: 3, textAlign: 'center' }}>
           <Box
             sx={{
@@ -284,68 +423,49 @@ export function StudentProfilePage() {
             <AssignmentOutlinedIcon sx={{ color: 'secondary.dark' }} />
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-            No assessments yet
+            No targets set yet
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            This student has not been assessed in any category.
-            <br />
-            Add the first assessment to start tracking progress.
+          <Typography variant="body2" color="text.secondary">
+            Set a target for a category when adding an assessment.
           </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddAssessmentOpen(true)}>
-            Add assessment
-          </Button>
         </Paper>
       ) : (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: '#E3E9F4' }}>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Date</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Academic Year</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Term</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Date Set</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>Category</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Level</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Assessed By</TableCell>
-                <TableCell sx={{ width: 220 }}>Comments</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3 }}>Actions</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Target Level</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Target Date</TableCell>
+                <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                  Achieved
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {assessments.map((a) => {
-                const level = levelById.get(a.level_id)
-                const category = categories.find((c) => c.id === a.category_id)
+              {goals.map((g) => {
+                const category = categories.find((c) => c.id === g.category_id)
+                const targetLevel = levelById.get(g.target_level_id)
+                const achieved = isGoalAchieved(g)
                 return (
-                  <TableRow key={a.id} sx={{ '&:nth-of-type(odd)': { bgcolor: '#FAF8F2' } }}>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(a.assessment_date)}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{a.academic_year}</TableCell>
-                    <TableCell>{a.assessment_term}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{category?.category_name ?? a.category_id}</TableCell>
-                    <TableCell>{level ? `${level.level_number} — ${level.description}` : a.level_id}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{a.assessed_by}</TableCell>
-                    <TableCell sx={{ width: 220 }}>{a.comments}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', width: '1%', pr: 3 }}>
-                      <Stack direction="row" spacing={0.5}>
-                        <Tooltip title="Edit assessment">
-                          <IconButton
-                            size="small"
-                            color="warning"
-                            onClick={() => setEditingAssessment(a)}
-                            sx={{ border: '1px solid', borderColor: 'warning.main' }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete assessment">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => setDeletingAssessment(a)}
-                            sx={{ border: '1px solid', borderColor: 'error.main' }}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
+                  <TableRow key={g.id} sx={{ '&:nth-of-type(odd)': { bgcolor: '#FAF8F2' } }}>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(g.created_at.slice(0, 10))}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{category?.category_name ?? g.category_id}</TableCell>
+                    <TableCell>
+                      {targetLevel ? `${targetLevel.level_number} — ${targetLevel.description}` : g.target_level_id}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(g.target_date)}</TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={achieved ? 'Target reached' : 'Not reached yet'}>
+                        <span style={{ display: 'inline-flex' }}>
+                          {achieved ? (
+                            <CheckCircleIcon fontSize="small" sx={{ color: '#0ca30c' }} />
+                          ) : (
+                            <RadioButtonUncheckedIcon fontSize="small" sx={{ color: '#c3c2b7' }} />
+                          )}
+                        </span>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 )
@@ -366,6 +486,8 @@ export function StudentProfilePage() {
         onClose={() => setAddAssessmentOpen(false)}
         studentId={student.student_id}
         onSaved={handleAssessmentSaved}
+        onGoalSaved={handleGoalSaved}
+        goals={goals}
       />
       <AssessmentModal
         open={editingAssessment !== null}
@@ -373,6 +495,8 @@ export function StudentProfilePage() {
         studentId={student.student_id}
         assessment={editingAssessment}
         onSaved={handleAssessmentSaved}
+        onGoalSaved={handleGoalSaved}
+        goals={goals}
       />
 
       <Dialog open={deletingAssessment !== null} onClose={() => setDeletingAssessment(null)} maxWidth="xs" fullWidth>

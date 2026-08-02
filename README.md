@@ -16,10 +16,16 @@ locations with role-based access for teachers and admins.
   (privately stored — never publicly accessible without going through the
   app's own authentication), grade validated against the destination
   school's allowed range, and full audit tracking (who created/last updated
-  each record).
+  each record). Permanently deleting a student (admin-only, and only once
+  archived) also removes their assessment and goal history.
 - **Assessments** — record a student's level in each category per term,
   view current progress and progress over time, with grade-level averages
   across a whole cohort.
+- **Goals** — optionally set a target level and target date for a student in
+  a category alongside recording an assessment (or add one later by editing
+  the assessment). Shown on the Current Progress card, as a dashed trajectory
+  on the Progress Over Time chart, and in a dedicated Goals history tab with
+  an auto-computed "achieved" indicator.
 - **Category management** — admins can add/edit/deactivate/restore
   assessment categories and their levels without touching the database
   directly.
@@ -88,11 +94,11 @@ localhost port).
 
 ## Testing
 
-The backend has a pytest suite (82 tests) covering auth flows, student CRUD
+The backend has a pytest suite (90 tests) covering auth flows, student CRUD
 with RBAC and grade validation, category admin CRUD, admin user-management
-guards, and assessment/grade-progress logic. It runs against a dedicated
-`khalsa_school_test` database — see the setup instructions at the top of
-`backend/tests/conftest.py` for one-time creation of that database.
+guards, goal validation, and assessment/grade-progress logic. It runs against
+a dedicated `khalsa_school_test` database — see the setup instructions at the
+top of `backend/tests/conftest.py` for one-time creation of that database.
 
 ```bash
 cd backend

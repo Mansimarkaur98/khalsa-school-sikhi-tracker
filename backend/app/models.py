@@ -108,3 +108,31 @@ class Assessment(Base):
             "student_id", "category_id", assessment_date.desc(),
         ),
     )
+
+
+class Goal(Base):
+    """A target level + date a teacher sets for a student in a category.
+    Append-only, same pattern as Assessment — never updated or deleted. The
+    "current" goal for a student+category is simply the most recent row."""
+    __tablename__ = "goals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[str] = mapped_column(ForeignKey("sikhi_tracker.students.student_id"), nullable=False)
+    category_id: Mapped[int] = mapped_column(ForeignKey("sikhi_tracker.categories.id"), nullable=False)
+    target_level_id: Mapped[int] = mapped_column(ForeignKey("sikhi_tracker.category_levels.id"), nullable=False)
+    target_date: Mapped[date] = mapped_column(Date, nullable=False)
+    set_by: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    student: Mapped["Student"] = relationship()
+    category: Mapped["Category"] = relationship()
+    target_level: Mapped["CategoryLevel"] = relationship()
+
+    __table_args__ = (
+        Index("idx_goals_student_id", "student_id"),
+        Index("idx_goals_category_id", "category_id"),
+        Index(
+            "idx_goals_student_category_created",
+            "student_id", "category_id", created_at.desc(),
+        ),
+    )

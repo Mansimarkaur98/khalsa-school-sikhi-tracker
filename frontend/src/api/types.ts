@@ -187,6 +187,23 @@ export interface AssessmentOut {
   comments: string | null
 }
 
+// ---------- Goals ----------
+export interface GoalCreate {
+  category_id: number
+  target_level_id: number
+  target_date: string // YYYY-MM-DD
+}
+
+export interface GoalOut {
+  id: number
+  student_id: string
+  category_id: number
+  target_level_id: number
+  target_date: string
+  set_by: string
+  created_at: string
+}
+
 // ---------- Grade Progress ----------
 export interface GradeProgressItem {
   category_id: number

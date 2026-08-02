@@ -226,6 +226,32 @@ class AssessmentOut(BaseModel):
     comments: Optional[str] = None
 
 
+# ---------- Goals ----------
+class GoalCreate(BaseModel):
+    category_id: int
+    target_level_id: int
+    target_date: date
+
+    @field_validator("target_date")
+    @classmethod
+    def target_date_must_be_future(cls, v: date) -> date:
+        if v <= date.today():
+            raise ValueError("target_date must be in the future")
+        return v
+
+
+class GoalOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    student_id: str
+    category_id: int
+    target_level_id: int
+    target_date: date
+    set_by: str
+    created_at: datetime
+
+
 # ---------- Grade Progress ----------
 class GradeProgressItem(BaseModel):
     category_id: int

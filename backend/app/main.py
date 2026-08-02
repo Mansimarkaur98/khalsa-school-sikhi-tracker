@@ -6,7 +6,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.rate_limit import limiter
-from app.routers import auth, students, assessments, categories, grades, schools, admin
+from app.routers import auth, students, assessments, categories, goals, grades, schools, admin
 
 _is_production = settings.environment == "production"
 
@@ -36,6 +36,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(students.router)
 app.include_router(assessments.router)
+app.include_router(goals.router)
 app.include_router(categories.router)
 app.include_router(grades.router)
 app.include_router(schools.router)
