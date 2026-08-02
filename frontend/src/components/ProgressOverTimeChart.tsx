@@ -159,7 +159,7 @@ export function ProgressOverTimeChart({ assessments, categories, levelById, goal
     return map
   }, [goals])
 
-  const { chartData, targetKeys } = useMemo(() => {
+  const { chartData, targetKeys, assessedSortKeys } = useMemo(() => {
     // Group by academic year + term, keeping the most recent assessment per category within each period.
     const periods = new Map<string, { sortKey: number; byCategory: Map<number, AssessmentOut> }>()
 
@@ -188,6 +188,10 @@ export function ProgressOverTimeChart({ assessments, categories, levelById, goal
       }
       rows.set(sortKey, row)
     }
+
+    // Periods with a real assessment, as opposed to a row added purely to
+    // plot a goal's target date — the table view should only show the former.
+    const assessedSortKeys = new Set(rows.keys())
 
     // Latest actual period per category — the starting point each target line draws from.
     const latestPeriodSortKeyByCategory = new Map<number, number>()
@@ -223,7 +227,7 @@ export function ProgressOverTimeChart({ assessments, categories, levelById, goal
     }
 
     const sortedRows = Array.from(rows.values()).sort((a, b) => a.sortKey - b.sortKey)
-    return { chartData: sortedRows, targetKeys }
+    return { chartData: sortedRows, targetKeys, assessedSortKeys }
   }, [assessments, chartCategories, levelById, currentGoalByCategory])
 
   function toggleSeries(dataKey: string) {
@@ -361,7 +365,7 @@ export function ProgressOverTimeChart({ assessments, categories, levelById, goal
               </TableRow>
             </TableHead>
             <TableBody>
-              {chartData.map((row) => (
+              {chartData.filter((row) => assessedSortKeys.has(row.sortKey)).map((row) => (
                 <TableRow key={row.period} sx={{ '&:nth-of-type(odd)': { bgcolor: '#FAF8F2' } }}>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.period}</TableCell>
                   {chartCategories.map((category) => {
