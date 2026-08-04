@@ -27,10 +27,6 @@ services:
         value: "8"
       - key: ENVIRONMENT
         value: production
-      - key: APP_USERNAME
-        sync: false
-      - key: APP_PASSWORD_HASH
-        sync: false
       - key: CLOUDINARY_URL
         sync: false
       - key: SMTP_HOST

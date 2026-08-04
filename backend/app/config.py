@@ -8,8 +8,6 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     jwt_expiry_hours: int = 8
-    app_username: str
-    app_password_hash: str
     cloudinary_url: str
 
     # "development" (default) leaves the interactive API docs open; set to

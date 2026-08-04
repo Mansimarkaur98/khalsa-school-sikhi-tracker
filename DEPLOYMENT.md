@@ -22,8 +22,6 @@ through dashboards, pasting in secrets.
 4. Before clicking **Apply**, you'll be prompted to fill in the env vars
    marked `sync: false` in `render.yaml` (Render won't let secrets live in
    the committed file). Open your local `backend/.env` and copy these over:
-   - `APP_USERNAME`
-   - `APP_PASSWORD_HASH`
    - `CLOUDINARY_URL`
    - `SMTP_USERNAME`
    - `SMTP_PASSWORD`

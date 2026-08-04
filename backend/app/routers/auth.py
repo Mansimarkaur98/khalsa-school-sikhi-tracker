@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.auth import create_access_token, get_current_user, hash_password, verify_password
-from app.config import settings
 from app.database import get_db
 from app.email_utils import send_activation_email, send_password_reset_email
 from app.rate_limit import limiter
@@ -47,12 +46,6 @@ def _is_expired(expires_at) -> bool:
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
-    # Shared staff login (env-configured), kept alongside individual signed-up accounts.
-    if payload.username == settings.app_username and verify_password(
-        payload.password, settings.app_password_hash
-    ):
-        return TokenResponse(access_token=create_access_token(settings.app_username))
-
     user = db.execute(
         select(models.User).where(models.User.email == payload.username)
     ).scalar_one_or_none()
@@ -197,5 +190,5 @@ def get_me(current_user: str = Depends(get_current_user), db: Session = Depends(
             school_name=user.school.name if user.school else None,
         )
 
-    # Shared staff login (or a legacy account with no name on file) — fall back to the username.
+    # Legacy account with no name on file — fall back to the identifier.
     return CurrentUserResponse(display_name=current_user)

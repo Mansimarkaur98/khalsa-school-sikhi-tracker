@@ -33,9 +33,8 @@ def create_access_token(sub: str) -> str:
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> str:
     """
-    FastAPI dependency — every protected route depends on this.
-    MVP has one shared account, so this just confirms the token is valid,
-    not tied to any per-user row.
+    FastAPI dependency — every protected route depends on this. Decodes and
+    validates the JWT, returning its subject (the user's email).
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -67,18 +66,18 @@ class CurrentUserContext:
 def get_current_user_context(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> CurrentUserContext:
-    """
-    Resolves the authenticated identifier (JWT sub) to a role + school. Signed-up
-    accounts get their row's role/school_id; the shared staff login (or any legacy
-    row with no email) has no school of its own and is never an admin.
-    """
+    """Resolves the authenticated identifier (JWT sub) to its account's role + school."""
     user = db.execute(select(models.User).where(models.User.email == current_user)).scalar_one_or_none()
-    if user:
-        display_name = f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else current_user
-        return CurrentUserContext(
-            identifier=current_user, role=user.role, school_id=user.school_id, display_name=display_name
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return CurrentUserContext(identifier=current_user, role="teacher", school_id=None, display_name=current_user)
+    display_name = f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else current_user
+    return CurrentUserContext(
+        identifier=current_user, role=user.role, school_id=user.school_id, display_name=display_name
+    )
 
 
 def require_admin(ctx: CurrentUserContext = Depends(get_current_user_context)) -> CurrentUserContext:
