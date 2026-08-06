@@ -16,13 +16,13 @@ def send_activation_email(to_email: str, first_name: str, token: str) -> None:
 
     body = f"""\
 <p>Hi {first_name},</p>
-<p>Thanks for signing up for the Khalsa School Sikhi Progress Tracker.
+<p>Thanks for signing up for the Sikhi Progress Tracker App.
 Click the link below to activate your account:</p>
 <p><a href="{link}">{link}</a></p>
 <p>This link expires in 24 hours. If you didn't request this, you can ignore this email.</p>
 """
     msg = MIMEText(body, "html")
-    msg["Subject"] = "Activate your Khalsa Sikhi Tracker account"
+    msg["Subject"] = "Activate your Sikhi Progress Tracker account"
     msg["From"] = settings.smtp_username
     msg["To"] = to_email
 
@@ -41,14 +41,14 @@ def send_password_reset_email(to_email: str, first_name: str, token: str) -> Non
 
     body = f"""\
 <p>Hi {first_name},</p>
-<p>We received a request to reset your Khalsa School Sikhi Progress Tracker password.
+<p>We received a request to reset your Sikhi Progress Tracker App password.
 Click the link below to choose a new one:</p>
 <p><a href="{link}">{link}</a></p>
 <p>This link expires in 1 hour. If you didn't request this, you can ignore this email —
 your password will stay the same.</p>
 """
     msg = MIMEText(body, "html")
-    msg["Subject"] = "Reset your Khalsa Sikhi Tracker password"
+    msg["Subject"] = "Reset your Sikhi Progress Tracker password"
     msg["From"] = settings.smtp_username
     msg["To"] = to_email
 
