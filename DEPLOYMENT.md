@@ -2,8 +2,18 @@
 
 How to take this app from "runs on my machine" to a live, public URL. This
 covers a **standalone deploy** (its own URL, e.g. `khalsa-sikhi-tracker.vercel.app`)
-using Render (backend + Postgres) and Vercel (frontend) — both have workable
-free tiers and don't require touching any existing domain's hosting.
+using Render (backend + Postgres) and Vercel (frontend) — neither requires
+touching any existing domain's hosting.
+
+`render.yaml` provisions both the backend and the database on Render's paid
+**Starter** plan (~$7/month each, ~$14/month combined) rather than the free
+tier. That's a deliberate choice once this app is serving real students
+across multiple schools, not just a personal demo: Starter keeps the backend
+always-on (no 30-50s cold start on the first request after a quiet period),
+gives the database automated daily backups, and lets the backend reach
+Postgres over Render's private network instead of the public internet —
+worth the cost once real student data is on the line. Vercel (frontend)
+stays on its free tier throughout; that's plenty for this app's traffic.
 
 Everything the repo needs is already committed: `render.yaml` (backend
 blueprint), `frontend/vercel.json` (SPA routing), and
@@ -18,7 +28,9 @@ through dashboards, pasting in secrets.
 3. Connect your GitHub account if prompted, then select this repo. Render
    will read `render.yaml` at the repo root and show you the two resources
    it's about to create: a Postgres database (`khalsa-school-db`) and a web
-   service (`khalsa-sikhi-tracker-api`).
+   service (`khalsa-sikhi-tracker-api`), both on the paid **Starter** plan —
+   Render will ask you to add a payment method before it lets you apply a
+   blueprint with paid-tier resources.
 4. Before clicking **Apply**, you'll be prompted to fill in the env vars
    marked `sync: false` in `render.yaml` (Render won't let secrets live in
    the committed file). Open your local `backend/.env` and copy these over:
@@ -93,6 +105,34 @@ allowing `localhost:5173`, not your new Vercel URL.
    **Manage Categories** shows the 8 seeded categories with their levels.
 3. Try adding a test student, then archive/delete it — confirms the database
    round-trip works end to end.
+
+## 6. Custom domain (optional — e.g. kssikhitracking.ca)
+
+The steps above give you a working app at a `*.vercel.app` URL. To put it on
+your own domain instead, with the API left on Render's free `onrender.com`
+URL (simplest option — no extra DNS record needed for the API):
+
+1. **Register the domain first**, if you haven't — a `.ca` domain requires
+   the registrant to meet CIRA's Canadian Presence Requirements (a Canadian
+   school easily qualifies). Any CIRA-accredited registrar works — e.g.
+   [Namecheap](https://namecheap.com), [godaddy.ca](https://godaddy.ca), or
+   [easyDNS](https://easydns.com) (Canadian-based). Expect ~$15–20 CAD/year.
+2. In the **Vercel** dashboard, open your frontend project → **Settings** →
+   **Domains** → **Add**, and enter your domain (e.g. `kssikhitracking.ca`).
+   Vercel shows you the DNS records to add — typically an `A` record for the
+   bare domain plus a `CNAME` for `www` pointing at `cname.vercel-dns.com`
+   (exact values are shown in Vercel's UI; they can change, so use whatever
+   it displays rather than guessing).
+3. Add those records at your registrar's DNS management page (or wherever
+   your domain's nameservers point). DNS propagation can take anywhere from
+   a few minutes to a few hours.
+4. Back in Vercel, wait for the domain to show a green "Valid Configuration"
+   status — it auto-provisions an SSL certificate once DNS resolves.
+5. Update `FRONTEND_URL` in Render's **Environment** tab to your new domain
+   (e.g. `https://kssikhitracking.ca`) — the backend's CORS check only
+   allows requests from whatever this is set to, so requests from the new
+   domain will be rejected until this is updated.
+6. Visit the custom domain and confirm login/signup work end to end.
 
 ## Updating after this — pushing new changes
 

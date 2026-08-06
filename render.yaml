@@ -1,6 +1,6 @@
 databases:
   - name: khalsa-school-db
-    plan: free
+    plan: starter
     databaseName: khalsa_school
     user: khalsa_school
 
@@ -8,7 +8,7 @@ services:
   - type: web
     name: khalsa-sikhi-tracker-api
     runtime: python
-    plan: free
+    plan: starter
     rootDir: backend
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
