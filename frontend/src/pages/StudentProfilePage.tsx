@@ -274,15 +274,22 @@ export function StudentProfilePage() {
                     <Chip
                       size="small"
                       label={d.assessed ? `${d.level} of ${d.maxLevel}${d.atMax ? ' ✓' : ''}` : 'Not started'}
-                      color={d.atMax ? 'success' : d.assessed ? 'secondary' : 'default'}
-                      sx={{ fontWeight: 600 }}
+                      color={d.atMax ? 'success' : undefined}
+                      sx={{
+                        fontWeight: 600,
+                        ...(d.atMax || !d.assessed ? {} : { bgcolor: `${color}1A`, color }),
+                      }}
                     />
                   </Stack>
                   <LinearProgress
                     variant="determinate"
                     value={d.maxLevel > 0 ? (d.level / d.maxLevel) * 100 : 0}
-                    color={d.atMax ? 'success' : 'secondary'}
-                    sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.200' }}
+                    sx={{
+                      height: 6,
+                      borderRadius: 3,
+                      bgcolor: 'grey.200',
+                      '& .MuiLinearProgress-bar': { bgcolor: d.atMax ? 'success.main' : color },
+                    }}
                   />
                   {d.targetLevelNumber && d.targetDate && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>

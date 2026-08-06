@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session, aliased
@@ -12,6 +14,7 @@ router = APIRouter(prefix="/api/v1/grades", tags=["grades"], dependencies=[Depen
 @router.get("/{grade}/progress", response_model=list[schemas.GradeProgressItem])
 def grade_progress(
     grade: str,
+    school_id: Optional[int] = None,
     db: Session = Depends(get_db),
     ctx: CurrentUserContext = Depends(get_current_user_context),
 ):
@@ -20,6 +23,10 @@ def grade_progress(
     they're an admin), find each student's most recent assessment per category
     (BR-3: current progress = latest by date), then average that level across
     all students in the grade, per category.
+
+    Admins may optionally narrow down to one school via `school_id`; unset
+    means "all schools" (the pre-existing admin behavior). Non-admins are
+    always scoped to their own school regardless of this param.
 
     Every active category is always included in the result, even if no
     student in this grade has an assessment in it yet (average_level will
@@ -47,6 +54,8 @@ def grade_progress(
     )
     if not ctx.is_admin:
         ranked_query = ranked_query.where(models.Student.school_id == ctx.school_id)
+    elif school_id is not None:
+        ranked_query = ranked_query.where(models.Student.school_id == school_id)
     ranked = ranked_query.subquery()
 
     # Step 2: each student's current (rn = 1) level, joined to get level_number.

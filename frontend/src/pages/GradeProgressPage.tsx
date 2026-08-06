@@ -1,18 +1,48 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Box, Chip, LinearProgress, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
 import { getGradeProgress } from '../api/grades'
-import { GRADE_OPTIONS, type GradeProgressItem } from '../api/types'
+import { listSchools } from '../api/schools'
+import { GRADE_OPTIONS, type GradeProgressItem, type SchoolOut } from '../api/types'
 import { getCategoryVisual } from '../utils/categoryVisuals'
+import { useAuth } from '../context/AuthContext'
 
 export function GradeProgressPage() {
+  const { isAdmin, schoolId: ownSchoolId, schoolName: ownSchoolName } = useAuth()
+  const [schools, setSchools] = useState<SchoolOut[]>([])
+  const [schoolFilter, setSchoolFilter] = useState<number | ''>('')
   const [grade, setGrade] = useState<string>(GRADE_OPTIONS[5])
   const [progress, setProgress] = useState<GradeProgressItem[]>([])
 
   useEffect(() => {
-    getGradeProgress(grade).then(setProgress)
-  }, [grade])
+    listSchools().then(setSchools)
+  }, [])
+
+  const selectedSchool = isAdmin
+    ? schools.find((s) => s.id === schoolFilter)
+    : schools.find((s) => s.id === ownSchoolId)
+
+  const availableGrades = useMemo(() => {
+    if (!selectedSchool) return GRADE_OPTIONS
+    return GRADE_OPTIONS.filter((g) => {
+      const n = Number(g)
+      return !Number.isNaN(n) && n >= selectedSchool.min_grade && n <= selectedSchool.max_grade
+    })
+  }, [selectedSchool])
+
+  useEffect(() => {
+    if (availableGrades.length > 0 && !(availableGrades as string[]).includes(grade)) {
+      setGrade(availableGrades[0])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableGrades])
+
+  useEffect(() => {
+    if (!grade) return
+    getGradeProgress(grade, isAdmin && schoolFilter !== '' ? schoolFilter : undefined).then(setProgress)
+  }, [grade, isAdmin, schoolFilter])
 
   const gradeLabel = grade === 'K' ? 'Kindergarten' : `Grade ${grade}`
+  const schoolLabel = isAdmin ? (schoolFilter === '' ? undefined : selectedSchool?.name) : ownSchoolName
 
   return (
     <Stack spacing={3}>
@@ -20,17 +50,36 @@ export function GradeProgressPage() {
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           Grade Progress
         </Typography>
-        <TextField select value={grade} onChange={(e) => setGrade(e.target.value)} sx={{ minWidth: 160 }}>
-          {GRADE_OPTIONS.map((g) => (
-            <MenuItem key={g} value={g}>
-              {g === 'K' ? 'Kindergarten' : `Grade ${g}`}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Stack direction="row" spacing={1.5}>
+          {isAdmin && (
+            <TextField
+              select
+              value={schoolFilter}
+              onChange={(e) => setSchoolFilter(e.target.value === '' ? '' : Number(e.target.value))}
+              slotProps={{ select: { displayEmpty: true } }}
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="">All Schools</MenuItem>
+              {schools.map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+          <TextField select value={grade} onChange={(e) => setGrade(e.target.value)} sx={{ minWidth: 160 }}>
+            {availableGrades.map((g) => (
+              <MenuItem key={g} value={g}>
+                {g === 'K' ? 'Kindergarten' : `Grade ${g}`}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
       </Stack>
 
       <Typography variant="body2" color="text.secondary">
-        Average achievement level per category, across all {gradeLabel} students.
+        Average achievement level per category, across all {gradeLabel} students
+        {schoolLabel ? ` in ${schoolLabel}` : ''}.
       </Typography>
 
       <Box
@@ -81,15 +130,22 @@ export function GradeProgressPage() {
                       ? `${p.average_level.toFixed(1)} / ${p.max_level}${atMax ? ' ✓' : ''}`
                       : `— / ${p.max_level}`
                   }
-                  color={atMax ? 'success' : p.average_level != null ? 'primary' : 'default'}
-                  sx={{ fontWeight: 600 }}
+                  color={atMax ? 'success' : undefined}
+                  sx={{
+                    fontWeight: 600,
+                    ...(atMax || p.average_level == null ? {} : { bgcolor: `${color}1A`, color }),
+                  }}
                 />
               </Stack>
               <LinearProgress
                 variant="determinate"
                 value={pct}
-                color={atMax ? 'success' : 'primary'}
-                sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.200' }}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  bgcolor: 'grey.200',
+                  '& .MuiLinearProgress-bar': { bgcolor: atMax ? 'success.main' : color },
+                }}
               />
               <Typography variant="caption" color="text.secondary">
                 {p.average_level != null
